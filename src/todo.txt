@@ -1,0 +1,7 @@
+Item picking/placing
+Followers moving
+Talking
+Exploring
+
+Done:
+Floor change

@@ -1,0 +1,69 @@
+Bed
+Portrait
+Dye maker
+Dye
+Mask maker
+Mirror
+Display
+Compactor
+Inflator
+
+Exit
+Corridor
+
+HP
+Armor
+Regen
+Damage
+Speed
+Bravery
+Accuracy
+Evasion
+Critical
+Aim
+Flank
+Spite
+Loot
+
+
+
+Clock - Speed
+Chair - HP
+Chest - Loot
+Crest - Bravery
+Picture - Location
+Gear stand - drop chance
+
+
+
+Health: So called Hit Point
+Durability: Damage reduction
+Growth: Regeneration
+Might: Dealing Damage
+Courage: Cover your allies
+Anger: Avenge Damage
+Compassion: Heal Friends
+Knowledge: Writing and Reading
+Greed: Find More
+Light: Strike True
+Darkness: Avoid Damage
+Time: Attack Rate
+Purity: Effect Resist?
+Pestilence: Poison
+
+Health: Wood, Bed
+Durability: Stone
+Growth: Leaf, Food
+Might: Iron, Weapons?
+Courage: Leather
+Anger: Bone, Wine
+Compassion: Cloth
+Knowledge: Paper, Book
+Greed: Gold, Chest
+Light: Glass, Torch
+Darkness: Obsidian, Curtain
+Time: Copper, Clock
+Pestilence: Asbestos
+
+Silver - Greed, Purity
+Diamond - Greed, Light

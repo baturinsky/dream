@@ -1,0 +1,179 @@
+<style>
+  body {
+    background-color: #000;
+    overflow: hidden;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    user-select: none;
+    background: linear-gradient(#008, #000);
+    overflow: hidden;
+  }
+
+  #BG {
+    position: fixed;
+    filter: url(#_N);
+    width: 100vw;
+    height: 100vh;
+    opacity: 0.3;
+  }
+
+  canvas {
+    padding: 0;
+    margin: 0;
+  }
+
+
+  #Back{
+    z-index: -100;
+    pointer-events: none;
+  }
+
+  .wall,
+  .floor{
+    pointer-events: all;
+  }
+
+
+  .wall,
+  .floor,
+  #Back,
+  #Front {
+    position: absolute;
+    transform-origin: 0% 0%;
+  }
+
+  #Front {
+    pointer-events: none;
+  }
+
+  .wall {
+    transform: rotate3d(0, -1, 0, 90deg);
+  }
+
+  .floor {
+    transform: rotate3d(1, 0, 0, 89.9deg);
+    background-color: #800;
+  }
+
+  #Cam {
+    perspective: 800px;
+    perspective-origin: 50% 200%;
+    position: absolute;
+    top: 0;
+    left: 50vw;
+  }
+
+  #Scene {
+    position: absolute;
+    transform-style: preserve-3d;
+  }
+
+  #Preview {
+    padding: 30px;
+    pointer-events: none;
+  }
+
+  #Debug {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 350px;
+    z-index: 10;
+    font-size: 18px;
+    color: #fff;
+  }
+
+  #Debug .csel {
+    padding: 10px;    
+    display: inline-block;
+    color: #fff;
+    text-shadow: 1px 1px 1px #000;
+  }
+
+  #Debug .csel * {
+    pointer-events: none;
+  }
+
+  #Debug .sprite {
+    transform: scale(2);
+    margin: 10px;
+  }
+
+  #Debug #FPS{
+  }
+
+  .sprite {
+    image-rendering: pixelated;
+    transform-origin: 50% 100%;
+    margin: 0;
+  }
+
+  @keyframes blink {
+    0% {
+      filter: brightness(0.8);
+    }
+
+    100% {
+      filter: brightness(1.2)
+    }
+  }
+
+  @keyframes rotate {
+    0% {
+      transform: rotate(-10deg);
+    }
+
+    100% {
+      transform: rotate(10deg);
+    }
+  }
+
+  .blink {
+    animation: blink infinite alternate .5s;
+  }
+</style>
+
+<div style="display: none;">
+  <svg>
+    <defs id="DEFS">
+      <filter id=_N>
+        <feTurbulence baseFrequency=0.005 type="fractalNoise" numOctaves="4" />
+      </filter>
+      <filter id=_R>
+        <feColorMatrix type=matrix values="1 0 0 0 0  -1 0 0 0 1  0 0 0 0 0  0 0 0 0 1" />
+      </filter>
+      <filter id=_T>
+        <feColorMatrix type=matrix values="1 0 0 0 0  -1 0 0 0 1  0 0 0 0 0  1 0 0 0 0" />
+      </filter>
+      <filter id=_O>
+        <feColorMatrix type=matrix values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0" result=f />
+        <feMorphology operator=dilate radius=".9" />
+        <feColorMatrix type=matrix values="0 0 0 0 0  1 0 0 0 0  0 0 0 0 0  1 0 0 0 0" />
+        <feBlend in2=f mode=overlay />
+      </filter>
+      <filter id=_4>
+        <feColorMatrix type=matrix values="1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 1 0" />
+      </filter>
+    </defs>
+
+  </svg>
+
+  <canvas id=TC></canvas>
+
+  <img id=img src="" />
+</div>
+
+<!--<div id=BG></div>-->
+
+<div id=Debug>
+  <div id=Preview></div>
+  <div id=FPS></div>
+</div>
+
+<div id=Cam>
+  <div id=Scene>
+    <canvas id=Back></canvas>
+    <canvas id=Front></canvas>
+  </div>
+</div>
+
+<script src=bundle.js></script>

@@ -1,0 +1,20 @@
+{
+  "name": "ihaveadream",
+  "version": "1.0.0",
+  "devDependencies": {
+    "esbuild": "^0.14.49",
+    "open": "^8.4.0",
+    "typescript": "^4.7.4"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "min": "node build.mjs --minify",
+    "start": "node build.mjs --serve"
+  },
+  "description": "Dream",
+  "main": "main.js",
+  "license": "MIT",
+  "dependencies": {
+    "deflate-js": "^0.2.3"
+  }
+}
