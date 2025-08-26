@@ -36,34 +36,34 @@ Gear stand - drop chance
 
 
 
-Health: So called Hit Point
-Durability: Damage reduction
-Growth: Regeneration
-Might: Dealing Damage
+Health: So called Hit Points
+Strength: Dealing Damage
+Resilience: Damage reduction
+Greed: Find More
+Bloom: Regeneration
 Courage: Cover your allies
 Anger: Avenge Damage
-Compassion: Heal Friends
+Mercy: Heal Friends
 Knowledge: Writing and Reading
-Greed: Find More
 Light: Strike True
-Darkness: Avoid Damage
+Dark: Avoid Damage
 Time: Attack Rate
 Purity: Effect Resist?
-Pestilence: Poison
+Venom: Poison
 
 Health: Wood, Bed
-Durability: Stone
+Durability: Stone, Column
 Growth: Leaf, Food
 Might: Iron, Weapons?
-Courage: Leather
+Bravery: Leather, Trophy
 Anger: Bone, Wine
-Compassion: Cloth
+Mercy: Cloth, Angel
 Knowledge: Paper, Book
 Greed: Gold, Chest
 Light: Glass, Torch
 Darkness: Obsidian, Curtain
 Time: Copper, Clock
-Pestilence: Asbestos
+Pestilence: Asbestos, Garbage Bin
 
 Silver - Greed, Purity
 Diamond - Greed, Light

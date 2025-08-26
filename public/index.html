@@ -16,11 +16,26 @@
     opacity: 0.3;
   }
 
-  canvas {
+  canvas, .scont {
+    padding: 0;
+    margin: 0;
+    position: relative;
+    transform-origin: 50% 100%;    
+  }
+
+  .scont{
+    pointer-events: none;
+  }
+
+  .pointer{
+    animation: .5s blink infinite alternate-reverse;
+  }
+
+  .sprite {
+    image-rendering: pixelated;
     padding: 0;
     margin: 0;
   }
-
 
   #Back{
     z-index: -100;
@@ -68,7 +83,7 @@
   }
 
   #Preview {
-    padding: 30px;
+    padding: 20px;
     pointer-events: none;
   }
 
@@ -99,12 +114,6 @@
   }
 
   #Debug #FPS{
-  }
-
-  .sprite {
-    image-rendering: pixelated;
-    transform-origin: 50% 100%;
-    margin: 0;
   }
 
   @keyframes blink {
@@ -138,7 +147,7 @@
       <filter id=_N>
         <feTurbulence baseFrequency=0.005 type="fractalNoise" numOctaves="4" />
       </filter>
-      <filter id=_R>
+      <filter id=_S>
         <feColorMatrix type=matrix values="1 0 0 0 0  -1 0 0 0 1  0 0 0 0 0  0 0 0 0 1" />
       </filter>
       <filter id=_T>
@@ -168,6 +177,8 @@
   <div id=Preview></div>
   <div id=FPS></div>
 </div>
+
+<div id=Info></div>
 
 <div id=Cam>
   <div id=Scene>

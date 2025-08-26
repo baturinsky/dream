@@ -1,7 +1,9 @@
 import { mouseTarget } from "./controls";
-import { palette, outl, roomHeight } from "./main";
+import { palette, roomHeight, current } from "./main";
 import { convertPalette, generatePalette, parsePalette, RGBA, sweetie16 } from "./palettes";
 import { createEntity, updateEntity, SimpleLayout } from "./entity";
+import { materials } from "./data";
+import { outl } from "./graphics";
 
 declare var Debug: HTMLDivElement, Preview: HTMLDivElement;
 
@@ -11,12 +13,23 @@ export function toCSSColor([r, g, b, a]: RGBA) {
   return `rgba(${r * 255},${g * 255},${b * 255},${a})`
 }
 
+export function paletteLine(rgb: RGBA) {
+  let bg = toCSSColor(rgb)
+  console.log(`%c           ${bg}`, `color:#00; background:${bg}`, `background:#fff`)
+}
+
 export function printPalette(p: RGBA[]) {
   for (let i in p) {
     let bg = toCSSColor(p[i])
     console.log(`%c          %c ${Number(i).toString(36)} ${bg}`, `color:#00; background:${bg}`, `background:#fff`)
   }
 
+  console.log(materials);
+  for (let name in materials) {
+
+    let [a, b] = [...materials[name].colors].map(c => palette[Number.parseInt(c, 36)]);
+    console.log(`%c   %c %c ${name}`, `color:#00; background:${toCSSColor(a)}`, `color:#00; background:${toCSSColor(b)}`, `background:#fff`)
+  }
 }
 
 function showPaletteMenuOld() {
@@ -43,16 +56,15 @@ function showPaletteMenu() {
 export function showMenu() {
   printPalette(palette)
   showPaletteMenu()
-  outl.forEach(o => Debug.appendChild(o))
+  for(let i=0;i>64;i++)
+    Debug.appendChild(outl(null as any, i))
 }
 
 
 
 export function debOnDown(e: MouseEvent) {
-  if (e.type != "mousedown")
-    return;
 
-  let [x,y,fl,v] = mouseTarget(e);
+  let [x, y, fl, v] = mouseTarget(e);
 
   if (fl == 'f' && e.button == 0 && e.shiftKey) {
     //repositionSprite(cat, [x, y], v);        
@@ -80,5 +92,6 @@ export function debOnDown(e: MouseEvent) {
 }
 
 export function createDebugSprite() {
-  return createEntity({ ...SimpleLayout, bits: [[curSprite, curFront + curBack]] })
+  return createEntity({ ...SimpleLayout, pickable: true, shape: curSprite, colors: curFront + curBack, pos: [0, 0, 0] })
 }
+

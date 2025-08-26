@@ -1,7 +1,7 @@
-import { showPhantom } from "./controls";
-import { cc, recolor, gcx } from "./graphics";
-import { cols, outl, roomHeight, roomWidth, entities, current, phantom } from "./main";
-import { dist, sub, sum } from "./util";
+import { materials } from "./data";
+import { cc, recolor, gcx, GloveShape, LegShape, outl } from "./graphics";
+import { cols, roomHeight, roomWidth, entities, current, pointer } from "./main";
+import { dist, mul, sub, sum } from "./util";
 
 declare var Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, DEFS: Element;
 
@@ -9,12 +9,29 @@ export type XY = [number, number];
 export type XYZ = [number, number, number];
 export let X = 0, Y = 1, Z = 2;
 
-export enum EntityKind { CHAR = 1, FURNITURE = 2 };
+export const
+  CharLayout = {
+    bitPos: [[3, 1], [2, 14], [2, 10], [2, 13]] as XY[],
+    mountPoint: [0, 0, 16],
+    size: [16, 24] as XY,
+    origin: "75% 50%",
+    makeBits: (e: Entity) => [
+      [e.shape, e.colors],
+      [LegShape, e.colors],
+      shapeAndColor(e.body),
+      [GloveShape, e.colors]
+    ],
+  } as Entity,
+  SimpleLayout = {
+    mountPoint: [5, 0, 0],
+    bitPos: [[0, 0]] as XY[],
+    size: [10, 10] as XY,
+    pickable: true,
+    makeBits: (e: Entity) => e && [[e.shape, e.colors]]
+  } as Entity;
 
-export enum ActionKind { MOVE = 1, PICK = 2 };
 
 export type Action = {
-  kind: ActionKind
   start: (e: Entity) => boolean
   update: (e: Entity) => boolean
 }
@@ -48,23 +65,23 @@ export type SpriteLayout = {
   size: XY
   /**transform-origin */
   origin: string
+  mountPoint: XYZ
 }
 
 export type Gear = {
-  hand?: Entity
   body?: Entity
 }
 
 export type Entity = SpriteLayout & Gear & {
   /**Canvas */
   canvas: HTMLCanvasElement,
+  div: HTMLDivElement;
   /**Position */
   pos: XYZ,
   /**Looking right */
   right?: boolean
   scale: number
   id?: number
-  kind: EntityKind
   children: Entity[]
   actionsQueue: Function[]
   animation?: Function
@@ -75,29 +92,16 @@ export type Entity = SpriteLayout & Gear & {
   transform: string
   pickable: boolean
   noclick: boolean
+  person: boolean
   opacity: number
+  held: Entity[]
+  owner?: Entity
+  material: string
+  /**Horisontal */
+  hor?: boolean
 }
 
 
-export const
-  CharLayout = {
-    bitPos: [[11, 0], [10, 14], [11, 10], [10, 13], [3, 6]] as XY[],
-    size: [20, 24] as XY,
-    origin: "75% 50%",
-    makeBits: (e: Entity) => [
-      [e.shape, e.colors],
-      [LegShape, e.colors],
-      shapeAndColor(e.body),
-      [GloveShape, e.colors],
-      shapeAndColor(e.hand)
-    ],
-  } as Entity,
-  SimpleLayout = {
-    bitPos: [[0, 0]] as XY[],
-    size: [10, 10] as XY,
-    pickable: true,
-    makeBits: (e: Entity) => e && [[e.shape, e.colors]]
-  } as Entity;
 
 export const lookRight = "scaleX(-1)";
 
@@ -120,39 +124,49 @@ export function ss(e: Entity) {
 export function updateEntity(e: Entity, parentPos?: XYZ) {
   if (!e.animation) {
     let nextAction = e.actionsQueue.shift()
-    if (nextAction)
-      e.animation = nextAction();
+    if (nextAction) {
+      let ar = nextAction();
+      if(ar instanceof Function)
+        e.animation = ar;
+    }
   }
 
   if (e.animation && e.animation() == false) {
     delete e.animation;
   }
 
-  let c = e.canvas, t = Date.now();
+  let d = e.div;
 
   let pos = parentPos ? sum(e.pos, parentPos) : e.pos;
 
-  c.style.left = `${pos[0] - ss(e)[0] / 2}px`
-  c.style.top = `${pos[2] - ss(e)[1]}px`
-  c.style.opacity = e.opacity as any;
+  let p = sub(pos, topLeftShift(e));
+
+  d.style.left = `${p[0]}px`
+  d.style.top = `${p[2]}px`
+  d.style.opacity = e.opacity as any;
 
   let transform = `translateZ(${pos[1]}px)` + (e.right ? lookRight : "") + /*`scale(${e.scale})` +*/ (e.transform ?? '');
 
-  c.style.transform = transform;
-  return c;
+  d.style.transform = transform;
+}
+
+export function topLeftShift(e:Entity){
+  return [ss(e)[0] / 2, 0, ss(e)[1]] as XYZ;
 }
 
 
 export function createCanvas(s: Entity) {
   let [c] = cc(1);
-  c.style.position = "absolute";
+  let div = document.createElement("div")
+  div.classList.add("scont")
+  div.appendChild(c);
+  div.style.position = "absolute";
   c.id = "s" + s.id;
   s.canvas = c;
+  s.div = div;
   updateCanvas(s)
   return c;
 }
-
-const LegShape = 0x20, GloveShape = 0x30;
 
 export function shapeAndColor(e?: Entity) {
   return e && [e.shape, e.colors] as [number, string];
@@ -160,6 +174,9 @@ export function shapeAndColor(e?: Entity) {
 
 
 export function updateCanvas(e: Entity) {
+  if(e.material){
+    e.colors = materials[e.material].colors;
+  }
   if (e.makeBits) {
     e.bits = e.makeBits(e);
   }
@@ -177,7 +194,7 @@ export function updateCanvas(e: Entity) {
       let b = e.bits[i];
       if (!b || !b[0])
         continue;
-      let rclr = recolor(outl[b[0]], b[1]);
+      let rclr = outl(b[1], b[0]);
 
       gcx(c).drawImage(
         rclr,
@@ -193,11 +210,12 @@ let lastSpriteId = 0;
 
 export function createEntity(s: Entity) {
   s.id ??= ++lastSpriteId;
+  s.held = []
   let e = { canvas: createCanvas(s), floor: 0, scale: 1, actionsQueue: [], ...s as any } as Entity;
   updateCanvas(e);
   if (e.pos) {
     entities.push(e)
-    Scene.appendChild(e.canvas)
+    Scene.appendChild(e.div)
     updateEntity(e);
   }
   return e
@@ -209,21 +227,26 @@ export function removeEntity(e: Entity) {
   e.canvas.parentElement?.removeChild(e.canvas);
 }
 
-export function takeEntity(e: Entity) {
-  current.hand = e;
-  updateCanvas(current);
-  removeEntity(e);
+export function holdEntity(owner: Entity, item: Entity, mountPoint?: XYZ) {
+
+  if (!item.pickable)
+    return;
+  owner.div.appendChild(item.div);
+  owner.held.unshift(item);
+  item.owner = owner;
+  item.pos = mountPoint ?? mul(owner.mountPoint, owner.scale);
+  updateEntity(item);
 }
 
-export function dropEntity(e: Entity, pos?: XYZ) {
-  if (e.hand) {
-    pos ??= e.pos;
-    e.hand.pickable = true;
-    createEntity({ ...e.hand, pos });
-    delete e.hand;
-    updateCanvas(e);
-    phantom.canvas.style.opacity = '0';
+export function dropHeldEntity(owner: Entity, pos?: XYZ) {
+  let item = owner.held.shift()
+  if (item) {
+    item.pos = pos ?? owner.pos;
+    Scene.appendChild(item.div);
+    delete item.owner;
+    updateEntity(item);
   }
+  return item
 }
 
 export function roomNumber(pos: XYZ) {
@@ -239,7 +262,7 @@ export function entityLook(e?: Entity) {
 }
 
 export function charBits(e: Entity) {
-  return [[e.shape, e.colors], [0x20, e.colors], entityLook(e.body), [0x30, e.colors], entityLook(e.hand)]
+  return [[e.shape, e.colors], [0x20, e.colors], entityLook(e.body), [0x30, e.colors]]
 }
 
 export function simple(shape, colors) {
@@ -253,4 +276,22 @@ export function simpleCopy(to: Entity, from: Entity) {
     to.scale = from.scale
   }
   updateCanvas(to);
+}
+
+export function ownerPos(e: Entity) {
+  return finalOwner(e).pos;
+}
+
+export function finalOwner(e: Entity){
+  return (e.owner ? finalOwner(e.owner) : e) as Entity;
+}
+
+export function absolutePos(e: Entity){
+  let pos = e.pos;
+  while(e.owner){
+    pos = sum(pos, e.owner.pos);
+    pos = sub(pos, topLeftShift(e.owner))
+    e = e.owner;
+  }
+  return pos;
 }

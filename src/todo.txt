@@ -1,7 +1,9 @@
-Item picking/placing
 Followers moving
 Talking
 Exploring
 
 Done:
 Floor change
+Item picking/placing
+Char switch
+

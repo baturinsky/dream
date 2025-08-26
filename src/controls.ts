@@ -1,6 +1,6 @@
 import { debOnDown } from "./debug";
-import { cat, current, roomHeight, entities, phantom } from "./main";
-import { ActionKind, dropEntity, removeEntity, roomDoorPos, roomNumber, walkTo, takeEntity, updateEntity, XY, XYZ, roomWalkAnimation, Entity, simpleCopy, updateCanvas } from "./entity";
+import { current, roomHeight, entities, phantom, selectPerson } from "./main";
+import { dropHeldEntity, holdEntity, updateEntity, XY, XYZ, roomWalkAnimation, Entity, simpleCopy, updateCanvas, ownerPos, absolutePos, finalOwner } from "./entity";
 import { sum } from "./util";
 
 declare var Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, Back: HTMLCanvasElement, DEFS: Element, Menu: HTMLDivElement;
@@ -21,6 +21,7 @@ export function groundPos(pos: XYZ) {
 export function showPhantom(e: Entity, pos: XYZ) {
   simpleCopy(phantom, e);
   phantom.pos = pos;
+  Scene.appendChild(phantom.div)
   updateEntity(phantom);
 }
 
@@ -41,10 +42,10 @@ export function initControls() {
     let actions;
 
     if (current && fl == "f" && !e.shiftKey) {
-      if (e.button == 0 || (e.button == 2 && !current.hand))
+      if (e.button == 0 || (e.button == 2 && !current.held.length))
         actions = roomWalkAnimation(current, to);
-      if (e.button == 2 && current.hand) {
-        actions = [...roomWalkAnimation(current, to), () => dropEntity(current)];
+      if (e.button == 2 && current.held.length) {
+        actions = [...roomWalkAnimation(current, to), () => dropHeldEntity(current)];
       }
 
     }
@@ -52,20 +53,26 @@ export function initControls() {
     if (current && fl == "s" && !e.shiftKey) {
       let te = entities.find(s => s.id == v);
       if (te && te != current) {
-        if (e.button == 0)
-          actions = roomWalkAnimation(current, te.pos)
-        if (e.button == 2 && te.pickable)
+        if (e.button == 0){
+          actions = roomWalkAnimation(current, ownerPos(te))
+        }
+        if (e.button == 2){
+          if(finalOwner(te).person){
+            selectPerson(finalOwner(te));
+          }
           actions = [
-            ...roomWalkAnimation(current, groundPos(te.pos)),
+            ...roomWalkAnimation(current, groundPos(ownerPos(te))),
             () => {
-              if (current.hand) {
-                let pos = sum(te.pos, [0, 0, -te.canvas.height]) as XYZ;
-                dropEntity(current, pos);
+              if (current.held.length) {
+                //let pos = sum(te.pos, [0, 0, -te.canvas.height]) as XYZ;
+                let dropped = dropHeldEntity(current);
+                dropped && holdEntity(te, dropped);
               } else {
-                takeEntity(te)
+                holdEntity(current, te)
               }
             }
           ];
+        }
       }
     }
 
@@ -95,14 +102,16 @@ export function initControls() {
 
     let [x, y, fl, v] = mouseTarget(e);
     let to = [x, y, v * roomHeight] as XYZ;
-    if (current && current.hand) {
+    let lastPicked = current?.held[0]
+    if (lastPicked) {
       if (fl == "f")
-        showPhantom(current.hand, to);
+        showPhantom(lastPicked, to);
       if (fl == "s") {
         let te = entities.find(s => s.id == v);
         if (te) {
           let pos = sum(te.pos, [0, 0, -te.canvas.height]) as XYZ;
-          showPhantom(current.hand, pos);
+          showPhantom(lastPicked, pos);
+          te.div.parentElement?.appendChild(phantom.div);
         }
       }
     }

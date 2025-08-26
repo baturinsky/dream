@@ -1,6 +1,5 @@
-import { roomWidth, roomDepth, rows, roomHeight, cols, outl, solid, transp, roomsNum } from "./main";
-import { filtered, createPattern, recolor, gcx } from "./graphics";
-import { createEntity, roomDoorPos, SimpleLayout } from "./entity";
+import { roomWidth, roomDepth, rows, roomHeight, cols } from "./main";
+import { filtered, createPattern, recolor, gcx, outl, solid, transp } from "./graphics";
 
 declare var Scene: HTMLDivElement, Back: HTMLCanvasElement, Front: HTMLCanvasElement;
 
@@ -24,36 +23,27 @@ export function prepareScene() {
     d.style.height = `${roomHeight * rows}px`;
   }
   Front.style.transform = `translateZ(${roomDepth}px)`
-}
 
-
-export function loadTextures() {
-  for (let i = 0; i < 128; i++) {
-    solid.push(filtered(i, 'R'));
-    transp.push(filtered(i, 'T'));
-    outl.push(filtered(i, 'O', 1));
-  }
-
-  let brickPattern = createPattern(recolor(solid[1], "2f"))
+  let brickPattern = createPattern(solid("2f", 1))
 
   let cb = gcx(Back);
   cb.fillStyle = brickPattern;
   cb.fillRect(0, 0, 1e4, 1e4);
 
   cb = gcx(Front);
-  cb.fillStyle = createPattern(recolor(solid[1], "2g"))
+  cb.fillStyle = createPattern(solid("2g", 1))
   for (let i = 0; i < cols; i++) cb.fillRect(i * roomWidth * 2 - 10, 0, 20, 1e4);
-  for (let i = 0; i < rows; i++) cb.fillRect(0, i * roomHeight * 2 - 10, 1e4, 20);
+  for (let i = 0; i < rows; i++) cb.fillRect(0, i * roomHeight * 2 - 10, 1e4, 20)
 
 
-  let wallPattern = createPattern(recolor(solid[2], "gf"))
+  let wallPattern = createPattern(solid("gf", 2))
   document.querySelectorAll(".wall").forEach((div) => {
     let cb = gcx(div as HTMLCanvasElement);
     cb.fillStyle = wallPattern;
     cb.fillRect(0, 0, 1e4, 1e4);
   })
 
-  let floorPattern = createPattern(recolor(solid[3], "rq"))
+  let floorPattern = createPattern(solid("rq", 1))
 
   document.querySelectorAll(".floor").forEach((div) => {
     let cb = gcx(div as HTMLCanvasElement);
@@ -62,3 +52,5 @@ export function loadTextures() {
   })
 
 }
+
+
