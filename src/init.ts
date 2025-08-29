@@ -1,5 +1,6 @@
-import { roomWidth, roomDepth, rows, roomHeight, cols } from "./main";
+import { roomWidth, roomDepth, rows, roomHeight, cols, roomsNum } from "./main";
 import { filtered, createPattern, recolor, gcx, outl, solid, transp } from "./graphics";
+import { createEntity, ItemTemplate, KindOf, roomDoorPos, SceneryTemplate } from "./entity";
 
 declare var Scene: HTMLDivElement, Back: HTMLCanvasElement, Front: HTMLCanvasElement;
 
@@ -50,6 +51,18 @@ export function prepareScene() {
     cb.fillStyle = floorPattern;
     cb.fillRect(0, 0, 1e4, 1e4);
   })
+
+  for (let i = 0; i < roomsNum; i++) {
+    createEntity({
+      ...SceneryTemplate,
+      shape: 0x50,
+      colors: "ef",
+      type: "Door",
+      level: i,
+      scale: 2,
+      pos: roomDoorPos(i)
+    })
+  }
 
 }
 

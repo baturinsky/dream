@@ -1,11 +1,11 @@
-import { debOnDown } from "./debug";
 import { current, roomHeight, entities, phantom, selectPerson } from "./main";
-import { dropHeldEntity, holdEntity, updateEntity, XY, XYZ, roomWalkAnimation, Entity, simpleCopy, updateCanvas, ownerPos, absolutePos, finalOwner } from "./entity";
+import { dropHeldEntity, holdEntity, updateEntity, XY, XYZ, roomWalkAnimation, Entity, simpleCopy, updateCanvas, parentPos, absolutePos, finalParent, KindOf, screenSize, info } from "./entity";
 import { sum } from "./util";
+import { onInit } from "./debug";
 
-declare var Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, Back: HTMLCanvasElement, DEFS: Element, Menu: HTMLDivElement;
+declare var Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, Back: HTMLCanvasElement, DEFS: Element, Menu: HTMLDivElement, Info: HTMLDivElement;
 
-export let mpress: boolean[] = [], sp = { x: 0, y: 0 }, zoom = 400;
+export let mpress: boolean[] = [], sp = [-100, 20], zoom = 600;
 
 export function setActions(e: Entity, a: Function[]) {
   if (!e)
@@ -26,6 +26,11 @@ export function showPhantom(e: Entity, pos: XYZ) {
 }
 
 
+export function updateCam() {
+  Scene.style.left = `${sp[0]}px`;
+  Scene.style.top = `${sp[1]}px`;
+}
+
 export function initControls() {
   onpointerup = e => {
     mpress[e.button] = false;
@@ -34,7 +39,6 @@ export function initControls() {
   onpointerdown = e => {
     mpress[e.button] = true;
 
-    debOnDown(e);
 
     let [x, y, fl, v] = mouseTarget(e);
     let to = [x, y, v * roomHeight] as XYZ;
@@ -53,25 +57,27 @@ export function initControls() {
     if (current && fl == "s" && !e.shiftKey) {
       let te = entities.find(s => s.id == v);
       if (te && te != current) {
-        if (e.button == 0){
-          actions = roomWalkAnimation(current, ownerPos(te))
+        if (e.button == 0) {
+          console.log(te);
+          actions = roomWalkAnimation(current, parentPos(te), 15)
         }
-        if (e.button == 2){
-          if(finalOwner(te).person){
-            selectPerson(finalOwner(te));
-          }
-          actions = [
-            ...roomWalkAnimation(current, groundPos(ownerPos(te))),
-            () => {
-              if (current.held.length) {
-                //let pos = sum(te.pos, [0, 0, -te.canvas.height]) as XYZ;
-                let dropped = dropHeldEntity(current);
-                dropped && holdEntity(te, dropped);
-              } else {
-                holdEntity(current, te)
+        if (e.button == 2) {
+          if (te.kind == KindOf.Person) {
+            selectPerson(finalParent(te));
+          } else {
+            actions = [
+              ...roomWalkAnimation(current, parentPos(te)),
+              () => {
+                if (current.held.length) {
+                  //let pos = sum(te.pos, [0, 0, -te.canvas.height]) as XYZ;
+                  let dropped = dropHeldEntity(current);
+                  dropped && holdEntity(te, dropped);
+                } else {
+                  holdEntity(current, te)
+                }
               }
-            }
-          ];
+            ];
+          }
         }
       }
     }
@@ -89,27 +95,30 @@ export function initControls() {
     if (t.classList.contains("sprite")) {
       //debugger
     }
+
   }
 
   onmousemove = e => {
     if (mpress[1]) {
-      let mul = 1;
-      sp.x += e.movementX * mul;
-      sp.y += e.movementY * mul;
-      Scene.style.left = `${sp.x}px`;
-      Scene.style.top = `${sp.y}px`;
+      let mul = .5;
+      sp = sum(sp, [e.movementX, e.movementY], mul);
+      updateCam()
     }
 
     let [x, y, fl, v] = mouseTarget(e);
     let to = [x, y, v * roomHeight] as XYZ;
-    let lastPicked = current?.held[0]
+    let lastPicked = current?.held[0]    
+    let te = entities.find(s => s.id == v);
+    updateInfo(te)
+
+    //Scene.style.setProperty("--hl", `s${te?.id}`)
+
     if (lastPicked) {
       if (fl == "f")
         showPhantom(lastPicked, to);
       if (fl == "s") {
-        let te = entities.find(s => s.id == v);
-        if (te) {
-          let pos = sum(te.pos, [0, 0, -te.canvas.height]) as XYZ;
+        if (te && te.kind == KindOf.Item) {
+          let pos = sum(te.pos, [0, 0, -screenSize(te)[1] * .7]) as XYZ;
           showPhantom(lastPicked, pos);
           te.div.parentElement?.appendChild(phantom.div);
         }
@@ -127,6 +136,21 @@ export function initControls() {
 
 }
 
+export let infoShownFor: Entity;
+
+export function itemOrPerson(e:Entity){
+  return e.kind == KindOf.Item || e.kind == KindOf.Person
+}
+
+export function updateInfo(e?: Entity) {
+  
+  let inf = info(e) || info(current);
+
+  infoShownFor = e || current;
+
+  Info.innerHTML = inf ? `<h1>${inf[0]}</h1>${inf[1]}` : ''
+}
+
 export function rezoom() {
   Scene.style.transform = `translateZ(${zoom}px)`;
 }
@@ -138,5 +162,3 @@ export function mouseTarget(e: MouseEvent) {
   let fl = id[0], v = id.substring(1) as any;
   return [x, y, fl, v]
 }
-
-

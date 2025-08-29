@@ -20,7 +20,7 @@ export function recolor(s: HTMLCanvasElement, filter: string) {
 }
 
 export const FaceSprites = 0x10, BodySprites = 0x20, ToolSprites = 0x30, LegSprites = 0x40,
-  FurnitureSprites = 0x50, TreeSprites = 0x60, BuildingSprites = 0x70;
+  FurnitureSprites = 0x50, TreeSprites = 0x70, BuildingSprites = 0x80, AspectSprites = 0x90;
 
 export const LegShape = LegSprites, GloveShape = ToolSprites;
 

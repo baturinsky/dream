@@ -52,10 +52,10 @@ Purity: Effect Resist?
 Venom: Poison
 
 Health: Wood, Bed
-Durability: Stone, Column
-Growth: Leaf, Food
-Might: Iron, Weapons?
-Bravery: Leather, Trophy
+Resilience: Stone, Column
+Bloom: Leaf, Food
+Strength: Iron, Weapons?
+Courage: Leather, Trophy
 Anger: Bone, Wine
 Mercy: Cloth, Angel
 Knowledge: Paper, Book
@@ -63,7 +63,7 @@ Greed: Gold, Chest
 Light: Glass, Torch
 Darkness: Obsidian, Curtain
 Time: Copper, Clock
-Pestilence: Asbestos, Garbage Bin
+Venom: Asbestos, Garbage Bin
 
 Silver - Greed, Purity
 Diamond - Greed, Light

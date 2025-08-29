@@ -1,11 +1,11 @@
-import { initControls, rezoom } from "./controls";
-import { showMenu } from "./debug";
+import { initControls, rezoom, updateCam, updateInfo } from "./controls";
+import { onInit, showMenu } from "./debug";
 import { prepareScene } from "./init";
 import { convertPalette, parsePalette, pineapple32 } from "./palettes";
-import { CharLayout, createEntity, updateEntity, SimpleLayout, Entity, simple, roomDoorPos, updateCanvas } from "./entity";
-import { BodySprites, filtered, numsToColors, recolor } from "./graphics";
-import { randomElement, rng } from "./util";
-import { materials } from "./data";
+import { PersonTemplate, createEntity, updateEntity, ItemTemplate, Entity, sfx as sfx, roomDoorPos, updateCanvas, KindOf, SfxTemplate, removeEntity, updateAll, exploreItemsNearby, decayAspects, createCanvas } from "./entity";
+import { AspectSprites, BodySprites, filtered, numsToColors, recolor } from "./graphics";
+import { japaneseName, randomElement, rng, weightedRandomOKey } from "./util";
+import { Aspects, Items, Materials } from "./data";
 
 declare var img: HTMLImageElement, FPS: HTMLDivElement;
 
@@ -25,14 +25,13 @@ onload = () => {
   img.src = '16cols.gif';
 }
 
-export function selectPerson(e: Entity) {
-  if (current) {
-    current.noclick = false;
-    updateCanvas(current)
-  }
+export function selectPerson(e?: Entity) {
+  if (!e)
+    return;
+  let old = current;
   current = e;
-  current.noclick = true;
-  updateCanvas(current)
+  updateAll(old);
+  updateAll(current);
   current.div.appendChild(pointer.div);
 }
 
@@ -41,77 +40,108 @@ function init() {
   showMenu()
   rezoom()
   initControls()
+  updateCam()
 
-
-  for (let i = 0; i < roomsNum; i++) {
-    createEntity({
-      ...SimpleLayout,
-      shape: 0x50,
-      colors: "ef",
-      pickable: false,
-      scale: 2,
-      pos: roomDoorPos(i)
-    })
-  }
 
   cat = createEntity(
     {
-      ...CharLayout,
+      ...PersonTemplate,
+      level: 1,
       shape: 0x12,
-      noclick: true,
       colors: "nm",
-      person: true,
-      body: simple(BodySprites + 2, "lk"),
+      type: "Cat",
+      name: japaneseName(),
+      chest: sfx(BodySprites + 2, "lk"),
       pos: [20, 10, roomHeight]
     });
 
   dog = createEntity(
     {
-      ...CharLayout,
+      ...PersonTemplate,
+      level: 1,
       shape: 0x1a,
       colors: "qp",
-      person: true,
-      body: simple(BodySprites + 1, "ba"),
+      type: "Dog",
+      name: japaneseName(),
+      chest: sfx(BodySprites + 1, "ba"),
       pos: [40, 10, roomHeight]
     });
 
 
-  phantom = createEntity({ ...SimpleLayout, opacity: 0.5, shape: 1, colors: "ab", pos: [0, 0, 0], noclick: true });
+  phantom = createEntity({ ...SfxTemplate, opacity: 0.5, shape: 1, colors: "ab", pos: [0, 0, 0], noclick: true });
 
   phantom.canvas.classList.add("phantom");
 
-  for (let i = 0; i < 300; i++)
+  for (let i = 0; i < 30; i++) {
+    let item = Items[weightedRandomOKey(Items, rng, it => it.chance)];
     createEntity({
-      ...SimpleLayout,
-      shape: 0x50 + rng(20),
-      scale: rng() > .5 ? 2 : 1,
-      material: randomElement(Object.keys(materials)),
+      ...ItemTemplate,
+      shape: 0x50 + item.ind,
+      scale: item.scale,
       //colors: numsToColors(rng(32), rng(32)),
-      pickable: true,
+      kind: KindOf.Item,
+      type: item.name,
+      material: rng(2) ? randomElement(Object.keys(Materials)) : item.material,
       pos: [
-        rng(roomWidth * cols),
+        rng(cols) * roomWidth + 10 + rng(roomWidth - 20),
         rng(roomDepth),
-        (rng(rows) + 1) * roomHeight]
+        roomHeight]
     })
+  }
 
 
-  pointer = createEntity({ ...SimpleLayout, shape: 0x8, colors: "ab", pos: [8, 0, 0] })
-  pointer.div.classList.add("pointer")
+  pointer = createEntity({ ...SfxTemplate, shape: 0x8, colors: "ab", pos: [8, 0, 4], className: "pointer" })
 
   selectPerson(cat);
 
   loop(0)
+
+  updateInfo()
+
+  onInit()
+
 }
 
 let lastt = 0, fps = 0;
 function loop(t) {
   let dt = t - lastt || 1;
   lastt = t;
+  let tn = Date.now();
   fps = fps * .9 + (1000 / dt) * .1;
   FPS.innerText = `FPS: ${~~fps}`;
-  entities.forEach(s => (s.actionsQueue.length || s.animation) && updateEntity(s))
+  [...entities].forEach(s => {
+    if (s.actionsQueue.length || s.animation)
+      updateEntity(s)
+    if (s.deadAt && tn > s.deadAt) {
+      removeEntity(s);
+    }
+    if(s.kind == KindOf.Person){
+      if(dt > rng() * 3000 ){
+        decayAspects(s);
+        exploreItemsNearby(s);
+      }
+    }
+
+    document.querySelectorAll('.aspect').forEach(el => {
+      let a = Aspects[(el as any)?.dataset?.aspect];
+      if(!a)
+        return;
+      delete (el as any)?.dataset?.aspect;
+      let c = createCanvas({
+        ...SfxTemplate,
+        shape: AspectSprites + a.ind,
+        colors: a.colors
+      })
+      el.prepend(c);
+    })
+
+  })
   requestAnimationFrame(loop)
   if (!current?.held.length)
     phantom.div.style.opacity = '0';
 }
 
+
+export function toggleDay(room:number, day:boolean){
+  
+}

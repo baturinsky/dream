@@ -1,17 +1,16 @@
-import { mouseTarget } from "./controls";
+import { mouseTarget, setActions } from "./controls";
 import { palette, roomHeight, current } from "./main";
 import { convertPalette, generatePalette, parsePalette, RGBA, sweetie16 } from "./palettes";
-import { createEntity, updateEntity, SimpleLayout } from "./entity";
-import { materials } from "./data";
-import { outl } from "./graphics";
+import { createEntity, updateEntity, ItemTemplate, KindOf, SfxTemplate, roomEntities, roomNumber, parentPos, roomWalkAnimation, sfx, showEmote } from "./entity";
+import { Aspects, Items, Materials } from "./data";
+import { AspectSprites, BodySprites, outl } from "./graphics";
+import { loadAll, saveAll } from "./serial";
+import { japaneseName, randomElement, RNG, sum, toCSSColor } from "./util";
 
 declare var Debug: HTMLDivElement, Preview: HTMLDivElement;
 
 export let curFront = '1', curBack = '2', curSprite = 0;
 
-export function toCSSColor([r, g, b, a]: RGBA) {
-  return `rgba(${r * 255},${g * 255},${b * 255},${a})`
-}
 
 export function paletteLine(rgb: RGBA) {
   let bg = toCSSColor(rgb)
@@ -24,11 +23,15 @@ export function printPalette(p: RGBA[]) {
     console.log(`%c          %c ${Number(i).toString(36)} ${bg}`, `color:#00; background:${bg}`, `background:#fff`)
   }
 
-  console.log(materials);
-  for (let name in materials) {
+  for (let name in Materials) {
 
-    let [a, b] = [...materials[name].colors].map(c => palette[Number.parseInt(c, 36)]);
+    let [a, b] = [...Materials[name].colors].map(c => palette[Number.parseInt(c, 36)]);
     console.log(`%c   %c %c ${name}`, `color:#00; background:${toCSSColor(a)}`, `color:#00; background:${toCSSColor(b)}`, `background:#fff`)
+  }
+
+  for (let as of Object.values(Aspects)) {
+    let [a, b] = [...as.colors].map(c => palette[Number.parseInt(c, 36)]);
+    console.log(`%c   %c %c ${as.name}`, `color:#00; background:${toCSSColor(a)}`, `color:#00; background:${toCSSColor(b)}`, `background:#fff`)
   }
 }
 
@@ -56,13 +59,13 @@ function showPaletteMenu() {
 export function showMenu() {
   printPalette(palette)
   showPaletteMenu()
-  for(let i=0;i>64;i++)
-    Debug.appendChild(outl(null as any, i))
+  for (let i = 0; i < 256; i++) {
+    Debug.appendChild(outl(0 as any, i))
+  }
 }
 
 
-
-export function debOnDown(e: MouseEvent) {
+addEventListener("pointerdown", (e: MouseEvent) => {
 
   let [x, y, fl, v] = mouseTarget(e);
 
@@ -89,9 +92,49 @@ export function debOnDown(e: MouseEvent) {
   Preview.innerHTML = "";
   let p = createDebugSprite();
   Preview.appendChild(p.canvas);
-}
+})
+
+const saveName = "ayhiadream"
+
+let ai = 0;
+
+addEventListener("keydown", e => {
+  if (e.code == "KeyD") {
+    Debug.classList.toggle("dn")
+  }
+  if (e.code == "KeyS") {
+    let save = saveAll();
+    localStorage.setItem(saveName, JSON.stringify(save))
+  }
+
+  if (e.code == "KeyL") {
+    let data = localStorage.getItem(saveName)
+    if (data)
+      loadAll(JSON.parse(data));
+  }
+
+  if (e.code == "KeyT") {
+    let neighbors = roomEntities(roomNumber(current.pos));
+    let ne = randomElement(neighbors);
+    setActions(current, roomWalkAnimation(current, parentPos(ne), 15));
+  }
+
+  if (e.code == "KeyE") {
+    //let a = randomElement(Object.values(Aspects));
+    let a = Object.keys(Aspects)[ai];
+    showEmote(current, a);
+    ai++
+  }
+})
 
 export function createDebugSprite() {
-  return createEntity({ ...SimpleLayout, pickable: true, shape: curSprite, colors: curFront + curBack, pos: [0, 0, 0] })
+  return createEntity({ ...SfxTemplate, shape: curSprite, colors: curFront + curBack, pos: [0, 0, 0] })
 }
 
+export function onInit() {
+  //for (let i = 0; i < 100; i++) console.log(japaneseName(RNG(Math.random())));
+  console.log(Aspects);
+  console.log(Materials);
+  console.log(Items);
+
+}
