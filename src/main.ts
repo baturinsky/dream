@@ -1,5 +1,5 @@
 import { initControls, rezoom, updateCam, updateInfo } from "./controls";
-import { onInit, showMenu } from "./debug";
+import { initDebug } from "./debug";
 import { prepareScene } from "./init";
 import { convertedPineapple32, convertPalette, parsePalette, pineapple32 } from "./palettes";
 import { PersonTemplate, createEntity, updateEntity, ItemTemplate, Entity, sfx as sfx, 
@@ -40,7 +40,6 @@ export function selectPerson(e?: Entity) {
 
 function init() {
   prepareScene()
-  showMenu()
   rezoom()
   initControls()
   updateCam()
@@ -101,7 +100,7 @@ function init() {
 
   updateInfo()
 
-  onInit()
+  initDebug()
 
 }
 

@@ -105,13 +105,20 @@ export function roomColRow(rnum: number) {
 
 export function addCarpet(rnum: number) {
   let [col, row] = roomColRow(rnum);
-  let c = element(`ca${rnum}`, 'floor,carpet', { top: `${++row * roomHeight}px`, left: `${col * roomWidth}px` })
+  let c = element(`ca${rnum}`, 'carpet', { top: `${++row * roomHeight}px`, left: `${col * roomWidth}px` }, "canvas")
   setCanvasSize(c, roomWidth, roomDepth, 2);
   return c
 }
 
+export function addWallpaper(rnum: number) {
+  let [col, row] = roomColRow(rnum);
+  let c = element(`wp${rnum}`, 'wp', { top: `${row * roomHeight}px`, left: `${col * roomWidth}px` }, "canvas")
+  setCanvasSize(c, roomWidth, roomHeight, 2);
+  return c
+}
 
-export function element(id: string, className: string, style, name = "canvas") {
+
+export function element(id: string, className: string, style: Partial<CSSStyleDeclaration>, name = "canvas") {
   let c = document.createElement(name);
   c.id = id;
   c.classList.add(...className.split(','));
@@ -121,12 +128,15 @@ export function element(id: string, className: string, style, name = "canvas") {
 }
 
 
-export function scaleCanvas(c: HTMLCanvasElement, n: number) {
-  let d = c.cloneNode() as HTMLCanvasElement;
-  d.width *= n;
-  d.height *= n;
-  gcx(d).scale(n, n);
-  gcx(d).imageSmoothingEnabled = false;
-  gcx(d).drawImage(c, 0, 0)
-  return d
+export function scaleCanvas(orig: HTMLCanvasElement, n: number) {
+  let c = orig.cloneNode() as HTMLCanvasElement;
+  c.width *= n;
+  c.height *= n;
+  drawScaled(c, orig, 0, 0, n);
+  return c
+}
+
+export function drawScaled(c: HTMLCanvasElement, img: HTMLCanvasElement, x: number, y: number, scale: number) {
+  gcx(c).imageSmoothingEnabled = false;
+  gcx(c).drawImage(img, x, y, img.width * scale, img.height * scale)
 }

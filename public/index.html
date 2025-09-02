@@ -37,10 +37,10 @@
   .sprite {
     image-rendering: pixelated;
     padding: 0;
-    margin: 0;    
+    margin: 0;
   }
 
-  .sprite:hover{
+  .sprite:hover {
     filter: brightness(1.2);
   }
 
@@ -54,9 +54,14 @@
     pointer-events: all;
   }
 
+  .carpet {
+    pointer-events: none;
+  }
 
-  .wall,
   .floor,
+  .carpet,
+  .wall,
+  .wp,
   #Back,
   #Front {
     position: absolute;
@@ -71,9 +76,14 @@
     transform: rotate3d(0, -1, 0, 90deg);
   }
 
-  .floor {
+  .wp {
+    background-color: #008;
+  }
+
+
+  .floor,
+  .carpet {
     transform: rotate3d(1, 0, 0, 89.9deg);
-    background-color: #800;
   }
 
   #Cam {
@@ -120,10 +130,6 @@
     margin: 10px;
   }
 
-  .carpet{
-    pointer-events: none;
-  }
-
   #Debug #FPS {}
 
   @keyframes blink {
@@ -151,17 +157,17 @@
   }
 
 
-  .aspect{
+  .aspect {
     font-size: 20;
   }
 
-  .aspect canvas{
+  .aspect canvas {
     padding-right: 10px;
     transform: scale(2);
     transform-origin: 50% 80%;
   }
 
-  .num{
+  .num {
     min-width: 50px;
   }
 
@@ -172,16 +178,16 @@
       opacity: 0;
     }
 
-    100%{
+    100% {
       transform: translateY(-5px);
     }
 
     20% {
-      opacity: 1;      
+      opacity: 1;
     }
   }
 
-  .ftext{
+  .ftext {
     position: absolute;
     font-size: 5px;
     text-align: center;
@@ -190,30 +196,30 @@
     pointer-events: none;
   }
 
-  .ftext div{
+  .ftext div {
     animation: 3s flow-up forwards linear;
   }
 
-  .etitle{
+  .etitle {
     color: #fff;
     text-shadow: 1px 1px 1px #000;
     pointer-events: none;
-    
+
     position: absolute;
-    top:-3px;
+    top: -3px;
     z-index: 100;
-    left:0;
+    left: 0;
     font-size: 4px;
     width: 100%;
-    text-align: center;    
+    text-align: center;
   }
 
-  .right .etitle{
+  .right .etitle {
     transform: scaleX(-1);
   }
 
-  .red{
-    color:#f00;
+  .red {
+    color: #f00;
   }
 
 
@@ -282,7 +288,9 @@
   </div>
 </div>
 
-<div id=Info><h1></h1></div>
+<div id=Info>
+  <h1></h1>
+</div>
 
 
 <script src=bundle.js></script>

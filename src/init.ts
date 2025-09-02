@@ -1,9 +1,9 @@
-import { filtered, createPattern, recolor, gcx, outl, solid, transp, fillWithPattern, setCanvasSize, element, addCarpet, spriteCanvas, scaleCanvas } from "./graphics";
+import { filtered, createPattern, recolor, gcx, outl, solid, transp, fillWithPattern, setCanvasSize, element, addCarpet, spriteCanvas, scaleCanvas, addWallpaper, TreeSprites, drawScaled } from "./graphics";
 import { createEntity, ItemTemplate, KindOf, roomDoorPos, SceneryTemplate } from "./entity";
 import { cols, roomWidth, rows, roomHeight, roomDepth, roomsNum } from "./state";
+import { rng } from "./util";
 
 declare var Scene: HTMLDivElement, Back: HTMLCanvasElement, Front: HTMLCanvasElement;
-
 
 
 
@@ -51,13 +51,21 @@ export function prepareScene() {
     })
   }
 
-  let ca = addCarpet(0);
-  let f = spriteCanvas(roomWidth + roomDepth, roomDepth);
-  fillWithPattern(ca, createPattern(solid("ba", 9)))
+  let f = addCarpet(0);
+  let grass = createPattern(solid("ba", 9))
+  fillWithPattern(f, grass)
   let road = scaleCanvas(transp("45", 11), 16);
-  gcx(ca).fillStyle = createPattern(road);
-  gcx(ca).globalAlpha = 0.5;
-  gcx(ca).fillRect(0, 0, ca.width, ca.height);
+  gcx(f).fillStyle = createPattern(road);
+  gcx(f).globalAlpha = 0.5;
+  gcx(f).fillRect(0, 0, f.width, f.height);
 
-  ca.style.background = '#000'
+  f = addWallpaper(0);
+  let trunk = outl('57', TreeSprites), top = outl('a9', TreeSprites + 2)
+  gcx(f).fillStyle = grass;
+  gcx(f).fillRect(0, f.height*.8, f.width, f.height*.2);
+  for (let i = 0; i < 5; i++) {
+    let h = rng(20)
+    drawScaled(f, trunk, 16 + i * 100, 166 - h, 8);
+    drawScaled(f, top, 16 + i * 100, 130 - h, 8);
+  }
 }

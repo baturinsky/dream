@@ -140,10 +140,11 @@ export function createDebugSprite() {
   return createEntity({ ...SfxTemplate, shape: curSprite, colors: curFront + curBack, pos: [0, 0, 0] })
 }
 
-export function onInit() {
+export function initDebug() {
   //for (let i = 0; i < 100; i++) console.log(japaneseName(RNG(Math.random())));
   console.log(Aspects);
   console.log(Materials);
   console.log(Items);
+  showMenu()
 
 }
