@@ -1,5 +1,5 @@
 import { Aspects } from "./data";
-import { createCanvas, SfxTemplate } from "./entity";
+import { createDiv, SfxTemplate } from "./entity";
 import { AspectSprites } from "./graphics";
 import { colorsStyle, listSum } from "./util";
 

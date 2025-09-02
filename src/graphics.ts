@@ -1,8 +1,11 @@
-import { quadSize, filters, palette, roomHeight } from "./main";
+import { XYZ } from "./entity";
+import { filters, palette } from "./main";
+import { cols, quadSize, roomDepth, roomHeight, roomWidth } from "./state";
 declare var Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, DEFS: Element;
 
 
-export let recolorFiltered = (initalFilter: string, filter: string, i: number) => recolor(filtered(i, initalFilter), filter),
+export let recolorFiltered = (initalFilter: string, filter: string, i: number) =>
+  recolor(filtered(i, initalFilter), filter),
   solid = (filter: string, i: number) => recolorFiltered('S', filter, i),
   transp = (filter: string, i: number) => recolorFiltered('T', filter, i),
   outl = (filter: string, i: number) => recolorFiltered('O', filter, i)
@@ -27,12 +30,12 @@ export const LegShape = LegSprites, GloveShape = ToolSprites;
 const atlasColumns = 16;
 
 export function filtered(sprite: number, filter: string, margin = 0) {
-  if(filter == 'O')
+  if (filter == 'O')
     margin = 1;
-  let [c, ctx] = cc(quadSize + margin * 2);
+  let c = spriteCanvas(quadSize + margin * 2);
   c.id = filter + sprite;
-  ctx.filter = `url(#_${filter})`
-  ctx.drawImage(img, sprite % atlasColumns * quadSize, ~~(sprite / atlasColumns) * quadSize, quadSize, quadSize, margin, margin, quadSize, quadSize);
+  gcx(c).filter = `url(#_${filter})`
+  gcx(c).drawImage(img, sprite % atlasColumns * quadSize, ~~(sprite / atlasColumns) * quadSize, quadSize, quadSize, margin, margin, quadSize, quadSize);
   return c
 }
 
@@ -51,16 +54,79 @@ export function constructFilter(cab: string) {
 }
 
 /**Creates a size*size canvas and returns it with context */
-export function cc(size: number, options?) {
+export function spriteCanvas(width: number, height = width) {
   let c = document.createElement("canvas")
   c.classList.add("sprite")
-  c.width = c.height = size;
-  Object.assign(c, options);
-  return [c, gcx(c)] as [HTMLCanvasElement, CanvasRenderingContext2D];
+  c.width = width;
+  c.height = height;
+  return c;
 }
 
-export const createPattern = (original: HTMLCanvasElement) => gcx(original).createPattern(original, "repeat") as CanvasPattern;
+export const createPattern = (original: HTMLCanvasElement) =>
+  gcx(original).createPattern(original, "repeat") as CanvasPattern;
 
 export function numsToColors(a: number, b: number) {
   return a.toString(36) + b.toString(36)
+}
+
+export function flyingText(text: string, pos: XYZ, className?: string) {
+  let div = document.createElement("div");
+  div.classList.add("ftext");
+  div.classList.add(className as any);
+  div.innerHTML = `<div>${text}</div>`;
+  Scene.appendChild(div);
+  setTimeout(() => Scene.removeChild(div), 3000);
+  positionDiv(div, pos);
+}
+
+export function positionDiv(d: HTMLElement, p: XYZ, transform = '') {
+  d.style.left = `${p[0]}px`
+  d.style.top = `${p[2]}px`
+  d.style.transform = `translateZ(${p[1]}px) ` + transform;
+}
+
+export function fillWithPattern(canvas: HTMLCanvasElement, pattern: CanvasPattern) {
+  let cb = gcx(canvas);
+  cb.fillStyle = pattern;
+  cb.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+export function setCanvasSize(c: HTMLCanvasElement, width: number, height: number, internalScale = 1) {
+  c.width = width * internalScale;
+  c.height = height * internalScale;
+  c.style.width = `${width}px`;
+  c.style.height = `${height}px`;
+  return c
+}
+
+export function roomColRow(rnum: number) {
+  return [~~(rnum / cols), rnum % cols]
+}
+
+export function addCarpet(rnum: number) {
+  let [col, row] = roomColRow(rnum);
+  let c = element(`ca${rnum}`, 'floor,carpet', { top: `${++row * roomHeight}px`, left: `${col * roomWidth}px` })
+  setCanvasSize(c, roomWidth, roomDepth, 2);
+  return c
+}
+
+
+export function element(id: string, className: string, style, name = "canvas") {
+  let c = document.createElement(name);
+  c.id = id;
+  c.classList.add(...className.split(','));
+  Object.assign(c.style, style)
+  Scene.appendChild(c);
+  return c as HTMLCanvasElement;
+}
+
+
+export function scaleCanvas(c: HTMLCanvasElement, n: number) {
+  let d = c.cloneNode() as HTMLCanvasElement;
+  d.width *= n;
+  d.height *= n;
+  gcx(d).scale(n, n);
+  gcx(d).imageSmoothingEnabled = false;
+  gcx(d).drawImage(c, 0, 0)
+  return d
 }

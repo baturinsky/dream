@@ -1,16 +1,18 @@
 import { aspectsToString, aspectsSum, inferLevel, aspectsMul } from "./aspects";
-import { groundPos, infoShownFor, itemOrPerson, setActions, updateInfo } from "./controls";
-import { Aspects, Items, Materials, Races } from "./data";
-import { cc, recolor, gcx, GloveShape, LegShape, outl, AspectSprites } from "./graphics";
-import { cols, roomHeight, roomWidth, entities, current, pointer } from "./main";
-import { dist, mul, randomElement, rng, rngRounded, sub, sum, weightedRandom, weightedRandomOKey } from "./util";
+import { groundPos, infoShownFor, itemOrPerson, updateInfo } from "./controls";
+import { Aspects, Items, Materials, Races, Types } from "./data";
+import { CombatStats, cooldown, dealDamage, maxhp, continueCombat, sleep } from "./dream";
+import { spriteCanvas, recolor, gcx, GloveShape, LegShape, outl, AspectSprites, positionDiv } from "./graphics";
+import { entities, current } from "./main";
+import { cols, lastSpriteId, nextSpriteId, roomHeight, rooms, roomWidth } from "./state";
+import { dist, mul, randomElement, rng, rngRounded, sub, sum, weightedRandom, weightedRandomF, weightedRandomOKey } from "./util";
 
 declare var Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, DEFS: Element;
 
 export type XY = [number, number];
 export type XYZ = [number, number, number];
 export let X = 0, Y = 1, Z = 2;
-
+export const lookRight = "scaleX(-1) translateX(-100%)";
 
 export type SpriteLayout = {
   /**Bits ids and colors */
@@ -43,6 +45,7 @@ export type Entity = SpriteLayout & Gear & {
   /**Canvas */
   canvas: HTMLCanvasElement,
   div: HTMLDivElement;
+  title: HTMLDivElement;
   actionsQueue: Function[]
   animation?: Function
   className: string
@@ -70,7 +73,9 @@ export type Entity = SpriteLayout & Gear & {
   /**Main colors */
   colors: string
   aspects: { [kind: string]: number }
-  day:boolean
+
+  /**Dream items -  */
+  dream: boolean
 
   /**Item type or person species */
   type: string
@@ -84,26 +89,10 @@ export type Entity = SpriteLayout & Gear & {
 
   held: Entity[]
 
+  combat: CombatStats
+
 }
 
-export type CombatStats = {
-  hp: number
-  delay: number
-  cdown: number
-  aggro: number
-}
-
-export function maxhp(e: Entity) {
-  return (e.aspects.H + e.level) * 10;
-}
-
-export function cooldown(e: Entity) {
-  return ~~(3000 / (1 + e.aspects.T));
-}
-
-export function damage(e: Entity) {
-  return (e.aspects.S + e.level) * 3;
-}
 
 export const
   PersonTemplate = {
@@ -143,39 +132,69 @@ export type Action = {
   update: (e: Entity) => boolean
 }
 
-export function walkTo(e: Entity, to: XYZ, stopDistance = 0) {
+const WALK = 1, ATTACK = 2, RECOIL = 3;
+
+export function walkTo(e: Entity, to: XYZ, options?: { stopDistance?: number, mode?: 1 | 2 | 3 }) {
   let from = e.pos, start = Date.now();
-  let duration = dist(e.pos, to) * 10;
+  let { stopDistance, mode } = options || {};
+  mode ??= WALK
+  let speed = mode == ATTACK ? .3 : .1;
+  let duration = dist(e.pos, to) / speed;
   let dx = to[0] - e.pos[0];
-  if (dx != 0)
+  if (dx != 0 && mode == WALK) {
     e.right = dx > 0;
+  }
   let posDelta = sub(to, from);
   return () => {
     let t = Date.now();
     let timeFromStart = Math.min(t - start, duration);
     e.pos = sum(from, posDelta, duration ? timeFromStart / duration : 1) as XYZ;
-    let finished = timeFromStart >= duration || dist(e.pos, to) < stopDistance;
-    e.transform = finished ? `` : `rotateZ(${Math.sin(t / 1e2) * 5}deg)`;
+    let finished = timeFromStart >= duration || dist(e.pos, to) < (stopDistance ?? 0);
+    e.transform = finished ? `` :
+      `rotateZ(${mode == ATTACK ? -10 :
+        mode == RECOIL ? 10 :
+          Math.sin(t / 1e2) * 5
+      }deg)`;
     return !finished;
   }
 }
 
-
-
-
-export const lookRight = "scaleX(-1)";
+export function facingX(e: Entity) {
+  return e.right ? 1 : -1;
+}
 
 export function roomWalkAnimation(e: Entity, to: XYZ, stopDistance = 0) {
   let fromRoom = roomNumber(e.pos), toRoom = roomNumber(to);
   if (toRoom == fromRoom)
-    return [() => walkTo(e, to, stopDistance)]
+    return [() => walkTo(e, to, { stopDistance })]
   else
     return [
       () => walkTo(e, roomDoorPos(fromRoom)),
-      //() => walkTo(e, roomDoorPos(toRoom), 0),
-      () => e.pos = roomDoorPos(toRoom),
-      () => walkTo(e, to, stopDistance),
+      () => e.pos = sum(roomDoorPos(toRoom), [5, 0, 0]),
+      () => walkTo(e, to, { stopDistance })
     ]
+}
+
+export function waitAnimation(duration: number) {
+  let start = Date.now();
+  return () => {
+    return Date.now() < start + duration;
+  }
+}
+
+export function recoilAnimation(defender: Entity) {
+  return [() => walkTo(defender, sum(defender.combat.pos, [facingX(defender) * -20, 0, 0]), { mode: RECOIL }),
+  () => walkTo(defender, defender.combat.pos, { mode: RECOIL }),
+  ]
+}
+
+export function attackAnimation(attacker: Entity, defender: Entity, onAttack = () => { }) {
+  return [
+    () => walkTo(attacker, defender.combat.pos, { mode: ATTACK }),
+    () => { dealDamage(attacker, defender); onAttack() },
+    () => walkTo(attacker, attacker.combat.pos, { mode: ATTACK }),
+    () => { attacker.combat.delay = cooldown(attacker); continueCombat(roomNumber(attacker.pos)) },
+  ]
 }
 
 export function screenSize(e: Entity) {
@@ -213,16 +232,20 @@ export function updateEntity(e: Entity, parentPos?: XYZ) {
 
   //d.style.pointerEvents = finalParent(e) != current && e.kind != KindOf.SFX ? "all" : "none";
 
-  d.style.left = `${p[0]}px`
-  d.style.top = `${p[2]}px`
+
   d.style.opacity = e.opacity as any;
   d.classList.toggle('current', e == current)
   d.classList.add("k" + e.kind)
+  d.classList.toggle("right", e.right)
 
-  let transform = `translateZ(${pos[1]}px)` + (e.right ? lookRight : "") + (e.transform ?? '');
+  positionDiv(d, p, (e.right ? lookRight : "") + (e.transform ?? ''))
 
-  d.style.transform = transform;
+  //let transform = `translateZ(${pos[1]}px)` + (e.right ? lookRight : "") + (e.transform ?? '');
+  /*d.style.left = `${p[0]}px`
+  d.style.top = `${p[2]}px`
+  d.style.transform = transform;*/
 }
+
 
 /**Coordinates of the top left corner compared to bottom center */
 export function topLeftShift(e: Entity) {
@@ -230,16 +253,21 @@ export function topLeftShift(e: Entity) {
 }
 
 
-export function createCanvas(s: Entity) {
-  let [c] = cc(1);
+export function createDiv(e: Entity) {
+  let c = spriteCanvas(1);
   let div = document.createElement("div")
   div.classList.add("entity")
   div.appendChild(c);
   div.style.position = "absolute";
-  c.id = "s" + s.id;
-  s.canvas = c;
-  s.div = div;
-  updateCanvas(s)
+  c.id = "s" + e.id;
+  e.canvas = c;
+  e.div = div;
+  if (e.kind == KindOf.Person) {
+    e.title = document.createElement("div");
+    e.title.classList.add("etitle");
+    div.appendChild(e.title)
+  }
+  updateCanvas(e)
   return c;
 }
 
@@ -283,25 +311,28 @@ export function updateCanvas(e: Entity) {
     }
 }
 
-export let lastSpriteId = 0;
-
-export function setLastSpriteId(v: number) {
-  lastSpriteId = v;
-}
 
 export function createEntity(s: Entity) {
-  s.id ??= ++lastSpriteId;
+  s.id ??= nextSpriteId();
   s.held = []
-  let e = { canvas: createCanvas(s), floor: 0, scale: 1, actionsQueue: [], ...s as any } as Entity;
-  updateCanvas(e);
+  let e = { canvas: createDiv(s), floor: 0, actionsQueue: [], ...s as any } as Entity;
+  let typ = Types[e.type];
 
-  if (s.kind == KindOf.Item) {
-    let item = Items[s.type];
-    e.mountPoint = [5, 0, 9 - item.placeh * 8];
+  //if(e.kind == KindOf.SFX) debugger
+
+  if (typ) {
+    if (typ.placeh)
+      e.mountPoint ??= [5, 0, 9 - typ.placeh * 8];
+    e.shape ??= [0, 0x10, 0x50, 0, 0][e.kind] + typ.ind
+    e.scale ??= typ.scale;
   }
 
+  e.scale ??= 1;
+
+  updateCanvas(e);
+
   if (e.pos) {
-    entities.push(e)
+    entities[s.id] = e;
     Scene.appendChild(e.div)
     if (s.className)
       e.div.classList.add(s.className)
@@ -315,18 +346,14 @@ export function createEntity(s: Entity) {
 
   //console.log(e.aspects);
 
+
   return e
-}
-
-
-export function createPerson(params) {
-  return
 }
 
 
 export function removeEntity(e: Entity) {
   e.div.parentElement?.removeChild(e.div);
-  entities.splice(entities.indexOf(e), 1);
+  delete entities[e.id];
 }
 
 export function holdEntity(parent: Entity, item: Entity, mountPoint?: XYZ) {
@@ -356,8 +383,12 @@ export function roomNumber(pos: XYZ) {
   return ~~(pos[0] / roomWidth) + cols * ~~(pos[2] / roomHeight - 1)
 }
 
+export function roomPos(n: number) {
+  return [(n % cols) * roomWidth, 0, roomHeight * ~~(n / cols + 1)] as XYZ
+}
+
 export function roomDoorPos(n: number) {
-  return [(n % cols + .5) * roomWidth, 0, roomHeight * ~~(n / cols + 1)] as XYZ
+  return sum(roomPos(n), [roomWidth / 2, 0, 0]) as XYZ;
 }
 
 export function entityLook(e?: Entity) {
@@ -399,8 +430,13 @@ export function absolutePos(e: Entity) {
   return pos;
 }
 
+export function inDream(e: Entity) {
+  let room = roomNumber(parentPos(e))
+  return rooms[room].dream
+}
+
 export function roomEntities(n: number) {
-  return entities.filter(e => roomNumber(parentPos(e)) == n)
+  return Object.values(entities).filter(e => roomNumber(parentPos(e)) == n)
 }
 
 export function showEmote(e: Entity, aspect: string) {
@@ -487,8 +523,7 @@ export function exploreItemsNearby(char: Entity) {
   if (!target)
     return;
 
-  console.log("exploring", target);
-  setActions(char, [...roomWalkAnimation(char, parentPos(target), 5), () => examine(char, target)]);
+  setActions(char, [...roomWalkAnimation(char, parentPos(target), 5), () => examine(char, target), () => waitAnimation(1000)]);
 }
 
 export function idle(char: Entity) {
@@ -500,5 +535,43 @@ export function decayAspects(char: Entity) {
   if (char.level < il) {
     let aspect = weightedRandomOKey(char.aspects);
     char.aspects[aspect] = Math.max(0, char.aspects[aspect] - 0.01 * ~~(il - char.level + 1));
+  }
+}
+
+export function dreaming(e: Entity) {
+  return rooms[roomNumber(parentPos(e))].dream
+}
+
+export function setActions(e: Entity, a: Function[]) {
+  if (!e)
+    return;
+  e.actionsQueue = a;
+  delete e.animation;
+}
+
+export function roomChars(room: number, dream: boolean | undefined = undefined) {
+  return roomEntities(room).filter(e => e.kind == KindOf.Person && (dream === undefined || !e.dream == !dream));
+}
+
+export function aspect(e: Entity, letter: string) {
+  return e.aspects[letter] ?? 0;
+}
+
+export function setTitle(e: Entity, text: string) {
+  if(e.title)
+    e.title.innerHTML = text
+}
+
+export function writeHP(e: Entity) {
+  setTitle(e, `${e.combat?.hp}/${maxhp(e)} hp`);
+}
+
+export function randomRace() {
+  return weightedRandomOKey(Races, a => a.chance)
+}
+
+export function useItem(user: Entity, item: Entity) {
+  if (item.type == "Bed") {
+    sleep(user);
   }
 }

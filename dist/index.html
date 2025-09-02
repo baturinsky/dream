@@ -24,7 +24,6 @@
     transform-origin: 0% 0%;
   }
 
-
   .entity.k4,
   .entity.current {
     pointer-events: none;
@@ -120,10 +119,6 @@
     margin: 10px;
   }
 
-  .carpet{
-    pointer-events: none;
-  }
-
   #Debug #FPS {}
 
   @keyframes blink {
@@ -180,42 +175,6 @@
       opacity: 1;      
     }
   }
-
-  .ftext{
-    position: absolute;
-    font-size: 5px;
-    text-align: center;
-    color: #fff;
-    text-shadow: 1px 1px 1px #000;
-    pointer-events: none;
-  }
-
-  .ftext div{
-    animation: 3s flow-up forwards linear;
-  }
-
-  .etitle{
-    color: #fff;
-    text-shadow: 1px 1px 1px #000;
-    pointer-events: none;
-    
-    position: absolute;
-    top:-3px;
-    z-index: 100;
-    left:0;
-    font-size: 4px;
-    width: 100%;
-    text-align: center;    
-  }
-
-  .right .etitle{
-    transform: scaleX(-1);
-  }
-
-  .red{
-    color:#f00;
-  }
-
 
   .blink {
     animation: blink infinite alternate .5s;

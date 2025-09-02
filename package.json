@@ -15,6 +15,7 @@
   "main": "main.js",
   "license": "MIT",
   "dependencies": {
-    "deflate-js": "^0.2.3"
+    "deflate-js": "^0.2.3",
+    "l13": "^0.0.5"
   }
 }

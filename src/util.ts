@@ -65,7 +65,13 @@ export function weightedRandom(list: number[], gen = rng) {
   return i;
 }
 
-export function weightedRandomOKey<T>(obj: { [id: string]: T }, gen = rng, f = (v: T) => v as number) {
+export function weightedRandomF<T>(list: T[], F:Function, gen = rng) {
+  let foo = list.map(F as any);
+  let ind = weightedRandom(foo as any);
+  return list[ind] as T;
+}
+
+export function weightedRandomOKey<T>(obj: { [id: string]: T }, f = (v: T) => v as number, gen = rng) {
   let ind = weightedRandom(Object.values(obj).map(f) as number[], gen);
   return Object.keys(obj)[ind];
 }

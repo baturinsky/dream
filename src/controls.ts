@@ -1,18 +1,12 @@
-import { current, roomHeight, entities, phantom, selectPerson } from "./main";
-import { dropHeldEntity, holdEntity, updateEntity, XY, XYZ, roomWalkAnimation, Entity, simpleCopy, updateCanvas, parentPos, absolutePos, finalParent, KindOf, screenSize, info } from "./entity";
+import { current, entities, phantom, selectPerson } from "./main";
+import { dropHeldEntity, holdEntity, updateEntity, XY, XYZ, roomWalkAnimation, Entity, simpleCopy, updateCanvas, parentPos, absolutePos, finalParent, KindOf, screenSize, info, setActions, waitAnimation, inDream, useItem } from "./entity";
 import { sum } from "./util";
-import { onInit } from "./debug";
+import { roomHeight, roomsNum } from "./state";
 
 declare var Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, Back: HTMLCanvasElement, DEFS: Element, Menu: HTMLDivElement, Info: HTMLDivElement;
 
 export let mpress: boolean[] = [], sp = [-100, 20], zoom = 600;
 
-export function setActions(e: Entity, a: Function[]) {
-  if (!e)
-    return;
-  e.actionsQueue = a;
-  delete e.animation;
-}
 
 export function groundPos(pos: XYZ) {
   return [pos[0], pos[1], Math.ceil(pos[2] / roomHeight) * roomHeight] as XYZ;
@@ -46,22 +40,21 @@ export function initControls() {
     let actions;
 
     if (current && fl == "f" && !e.shiftKey) {
-      if (e.button == 0 || (e.button == 2 && !current.held.length))
+      if (e.button == 2 || (e.button == 0 && !current.held.length))
         actions = roomWalkAnimation(current, to);
-      if (e.button == 2 && current.held.length) {
+      if (e.button == 0 && current.held.length) {
         actions = [...roomWalkAnimation(current, to), () => dropHeldEntity(current)];
       }
 
     }
 
     if (current && fl == "s" && !e.shiftKey) {
-      let te = entities.find(s => s.id == v);
-      if (te && te != current) {
-        if (e.button == 0) {
-          console.log(te);
-          actions = roomWalkAnimation(current, parentPos(te), 15)
-        }
+      let te = entities[v];
+      if (te && te != current && !inDream(te)) {
         if (e.button == 2) {
+          actions = [...roomWalkAnimation(current, parentPos(te), 15), ()=>useItem(current, te)]
+        }
+        if (e.button == 0) {
           if (te.kind == KindOf.Person) {
             selectPerson(finalParent(te));
           } else {
@@ -69,7 +62,6 @@ export function initControls() {
               ...roomWalkAnimation(current, parentPos(te)),
               () => {
                 if (current.held.length) {
-                  //let pos = sum(te.pos, [0, 0, -te.canvas.height]) as XYZ;
                   let dropped = dropHeldEntity(current);
                   dropped && holdEntity(te, dropped);
                 } else {
@@ -82,8 +74,9 @@ export function initControls() {
       }
     }
 
-    if (actions)
-      setActions(current, actions);
+    if (actions && !inDream(current)){
+      setActions(current, [...actions, ()=>waitAnimation(5000)]);
+    }
 
     oncontextmenu = e => {
       if (!e.shiftKey)
@@ -108,7 +101,7 @@ export function initControls() {
     let [x, y, fl, v] = mouseTarget(e);
     let to = [x, y, v * roomHeight] as XYZ;
     let lastPicked = current?.held[0]    
-    let te = entities.find(s => s.id == v);
+    let te = entities[v];
     updateInfo(te)
 
     //Scene.style.setProperty("--hl", `s${te?.id}`)

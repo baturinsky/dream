@@ -1,11 +1,12 @@
-import { mouseTarget, setActions } from "./controls";
-import { palette, roomHeight, current } from "./main";
+import { mouseTarget } from "./controls";
+import { palette, current } from "./main";
 import { convertPalette, generatePalette, parsePalette, RGBA, sweetie16 } from "./palettes";
-import { createEntity, updateEntity, ItemTemplate, KindOf, SfxTemplate, roomEntities, roomNumber, parentPos, roomWalkAnimation, sfx, showEmote } from "./entity";
+import { createEntity, updateEntity, ItemTemplate, KindOf, SfxTemplate, roomEntities, roomNumber, parentPos, roomWalkAnimation, sfx, showEmote, setActions, inDream } from "./entity";
 import { Aspects, Items, Materials } from "./data";
 import { AspectSprites, BodySprites, outl } from "./graphics";
-import { loadAll, saveAll } from "./serial";
+import { loadAll, roomHeight, saveAll } from "./state";
 import { japaneseName, randomElement, RNG, sum, toCSSColor } from "./util";
+import { sleep as sleep, wake } from "./dream";
 
 declare var Debug: HTMLDivElement, Preview: HTMLDivElement;
 
@@ -124,6 +125,14 @@ addEventListener("keydown", e => {
     let a = Object.keys(Aspects)[ai];
     showEmote(current, a);
     ai++
+  }
+
+  if (e.code == "KeyN") {
+    if(inDream(current)){
+      wake(roomNumber(current.pos))
+    } else {
+      sleep(current)
+    }
   }
 })
 

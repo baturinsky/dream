@@ -1,5 +1,4 @@
-<style>
-  body {
+<style>body {
     background-color: #000;
     overflow: hidden;
     font-family: Georgia;
@@ -23,7 +22,6 @@
     position: relative;
     transform-origin: 0% 0%;
   }
-
 
   .entity.k4,
   .entity.current {
@@ -120,10 +118,6 @@
     margin: 10px;
   }
 
-  .carpet{
-    pointer-events: none;
-  }
-
   #Debug #FPS {}
 
   @keyframes blink {
@@ -181,42 +175,6 @@
     }
   }
 
-  .ftext{
-    position: absolute;
-    font-size: 5px;
-    text-align: center;
-    color: #fff;
-    text-shadow: 1px 1px 1px #000;
-    pointer-events: none;
-  }
-
-  .ftext div{
-    animation: 3s flow-up forwards linear;
-  }
-
-  .etitle{
-    color: #fff;
-    text-shadow: 1px 1px 1px #000;
-    pointer-events: none;
-    
-    position: absolute;
-    top:-3px;
-    z-index: 100;
-    left:0;
-    font-size: 4px;
-    width: 100%;
-    text-align: center;    
-  }
-
-  .right .etitle{
-    transform: scaleX(-1);
-  }
-
-  .red{
-    color:#f00;
-  }
-
-
   .blink {
     animation: blink infinite alternate .5s;
   }
@@ -235,54 +193,4 @@
     border-right: solid 1px #fff4;
     border-top: solid 1px #fff4;
     padding: 0px 20px 20px 20px;
-  }
-</style>
-
-<div class=dn>
-  <svg>
-    <defs id="DEFS">
-      <filter id=_N>
-        <feTurbulence baseFrequency=0.005 type="fractalNoise" numOctaves="4" />
-      </filter>
-      <filter id=_S>
-        <feColorMatrix type=matrix values="1 0 0 0 0  -1 0 0 0 1  0 0 0 0 0  0 0 0 0 1" />
-      </filter>
-      <filter id=_T>
-        <feColorMatrix type=matrix values="1 0 0 0 0  -1 0 0 0 1  0 0 0 0 0  1 0 0 0 0" />
-      </filter>
-      <filter id=_O>
-        <feColorMatrix type=matrix values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0" result=f />
-        <feMorphology operator=dilate radius=".9" />
-        <feColorMatrix type=matrix values="0 0 0 0 0  1 0 0 0 0  0 0 0 0 0  1 0 0 0 0" />
-        <feBlend in2=f mode=overlay />
-      </filter>
-      <filter id=_4>
-        <feColorMatrix type=matrix values="1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 1 0" />
-      </filter>
-    </defs>
-
-  </svg>
-
-  <canvas id=TC></canvas>
-
-  <img id=img src="" />
-</div>
-
-<!--<div id=BG></div>-->
-
-<div id=Debug class=dn>
-  <div id=Preview></div>
-  <div id=FPS></div>
-</div>
-
-<div id=Cam>
-  <div id=Scene>
-    <canvas id=Back></canvas>
-    <canvas id=Front></canvas>
-  </div>
-</div>
-
-<div id=Info><h1></h1></div>
-
-
-<script src=bundle.js></script>
+  }</style><div class=dn><svg><defs id=DEFS><filter id=_N><feTurbulence baseFrequency=0.005 numOctaves=4 type=fractalNoise /></filter><filter id=_S><feColorMatrix type=matrix values="1 0 0 0 0  -1 0 0 0 1  0 0 0 0 0  0 0 0 0 1"/></filter><filter id=_T><feColorMatrix type=matrix values="1 0 0 0 0  -1 0 0 0 1  0 0 0 0 0  1 0 0 0 0"/></filter><filter id=_O><feColorMatrix type=matrix values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0" result=f /><feMorphology operator=dilate radius=.9 /><feColorMatrix type=matrix values="0 0 0 0 0  1 0 0 0 0  0 0 0 0 0  1 0 0 0 0"/><feBlend in2=f mode=overlay /></filter><filter id=_4><feColorMatrix type=matrix values="1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 1 0"/></filter></defs></svg><canvas id=TC></canvas><img id=img src=""></div><div id=Debug class=dn><div id=Preview></div><div id=FPS></div></div><div id=Cam><div id=Scene><canvas id=Back></canvas><canvas id=Front></canvas></div></div><div id=Info><h1></h1></div><script src=bundle.js></script>

@@ -123,3 +123,5 @@ c03b94
 ddffff
 eeeeee
 `
+
+export const convertedPineapple32 = `906j05u58zdczpdrfag867240125869i8lp8zu7zi8t94h34724i97wlfzuozzvqrrfjj68a13509d4kngtqzvuzjnq8kd3duzzxxx`

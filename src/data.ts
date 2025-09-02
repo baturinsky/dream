@@ -90,9 +90,12 @@ Drago
 Alien
 Hare`.split("\n").map((line, ind) => {
     let [name, aspects] = line.split(":");
-    return [name, { name, aspects:aspectsFromString(aspects), ind } as any as
-      { ind: number, name: string, aspects: TAspects }]
+    return [name, { name, aspects:aspectsFromString(aspects), ind, chance:1/(10+ind) } as any as
+      { ind: number, name: string, aspects: TAspects, chance:number }]
   })));
+
+
+export const Types = {...Races, ...Items}
 
 export const suit =
   `Shirt

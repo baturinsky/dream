@@ -1,24 +1,27 @@
 import { initControls, rezoom, updateCam, updateInfo } from "./controls";
 import { onInit, showMenu } from "./debug";
 import { prepareScene } from "./init";
-import { convertPalette, parsePalette, pineapple32 } from "./palettes";
-import { PersonTemplate, createEntity, updateEntity, ItemTemplate, Entity, sfx as sfx, roomDoorPos, updateCanvas, KindOf, SfxTemplate, removeEntity, updateAll, exploreItemsNearby, decayAspects, createCanvas } from "./entity";
-import { AspectSprites, BodySprites, filtered, numsToColors, recolor } from "./graphics";
+import { convertedPineapple32, convertPalette, parsePalette, pineapple32 } from "./palettes";
+import { PersonTemplate, createEntity, updateEntity, ItemTemplate, Entity, sfx as sfx, 
+  KindOf, SfxTemplate, removeEntity, updateAll, exploreItemsNearby, decayAspects, createDiv, dreaming } from "./entity";
+import { AspectSprites, BodySprites } from "./graphics";
 import { japaneseName, randomElement, rng, weightedRandomOKey } from "./util";
 import { Aspects, Items, Materials } from "./data";
+import { roomHeight, cols, roomWidth, roomDepth } from "./state";
 
-declare var img: HTMLImageElement, FPS: HTMLDivElement;
+declare var img: HTMLImageElement, FPS: HTMLDivElement, Scene: HTMLDivElement;
 
-export const roomDepth = 64, rows = 5, cols = 3, roomHeight = 100, roomWidth = 200, quadSize = 8, roomsNum = rows * cols;
+
+//console.log(convertPalette(pineapple32));
 
 export let
   //palette = generatePalette(),
-  palette = parsePalette(convertPalette(pineapple32)),
+  palette = parsePalette(convertedPineapple32),
   filters = new Set();
 
 export let catSprite: HTMLCanvasElement;
 
-export let cat: Entity, dog: Entity, phantom: Entity, pointer: Entity, current: Entity, entities: Entity[] = [];
+export let cat: Entity, dog: Entity, phantom: Entity, pointer: Entity, current: Entity, entities: {[id:number]:Entity} = {};
 
 onload = () => {
   img.onload = init;
@@ -73,14 +76,14 @@ function init() {
   phantom.canvas.classList.add("phantom");
 
   for (let i = 0; i < 30; i++) {
-    let item = Items[weightedRandomOKey(Items, rng, it => it.chance)];
+    let item = Items[weightedRandomOKey(Items, it => it.chance)];
     createEntity({
       ...ItemTemplate,
-      shape: 0x50 + item.ind,
-      scale: item.scale,
-      //colors: numsToColors(rng(32), rng(32)),
       kind: KindOf.Item,
       type: item.name,
+      //shape: 0x50 + item.ind,
+      //scale: item.scale,
+      //colors: numsToColors(rng(32), rng(32)),
       material: rng(2) ? randomElement(Object.keys(Materials)) : item.material,
       pos: [
         rng(cols) * roomWidth + 10 + rng(roomWidth - 20),
@@ -109,14 +112,16 @@ function loop(t) {
   let tn = Date.now();
   fps = fps * .9 + (1000 / dt) * .1;
   FPS.innerText = `FPS: ${~~fps}`;
-  [...entities].forEach(s => {
+  Object.values(entities).forEach(s => {
     if (s.actionsQueue.length || s.animation)
       updateEntity(s)
     if (s.deadAt && tn > s.deadAt) {
       removeEntity(s);
     }
-    if(s.kind == KindOf.Person){
-      if(dt > rng() * 3000 ){
+    if (s.kind == KindOf.Person) {
+      let dream = dreaming(s);
+      if(dream){
+      } else if (dt > rng() * 3000) {
         decayAspects(s);
         exploreItemsNearby(s);
       }
@@ -124,10 +129,10 @@ function loop(t) {
 
     document.querySelectorAll('.aspect').forEach(el => {
       let a = Aspects[(el as any)?.dataset?.aspect];
-      if(!a)
+      if (!a)
         return;
       delete (el as any)?.dataset?.aspect;
-      let c = createCanvas({
+      let c = createDiv({
         ...SfxTemplate,
         shape: AspectSprites + a.ind,
         colors: a.colors
@@ -141,7 +146,8 @@ function loop(t) {
     phantom.div.style.opacity = '0';
 }
 
-
-export function toggleDay(room:number, day:boolean){
-  
+export type Room = Entity & {
+  start: number
 }
+
+
