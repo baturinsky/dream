@@ -12,8 +12,8 @@ Anger:Avenge Damage:uv
 Mercy:Heal Friends:lx
 Knowledge:Writing and Reading:mn
 Light:Strike True:je
-Dark:Avoid Damage:o8
-Time:Attack Rate:lm
+Dark:Evade:o8
+Time:Action Rate:lm
 Purity:Resist Poison:rq
 Venom:Poison:ba`.split("\n").map((line, ind) => {
     let [name, tip, colors] = line.split(":");

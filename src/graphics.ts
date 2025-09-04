@@ -1,7 +1,11 @@
 import { XYZ } from "./entity";
+import { floors } from "./init";
 import { filters, palette } from "./main";
-import { cols, quadSize, roomDepth, roomHeight, roomWidth } from "./state";
-declare var Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, DEFS: Element;
+import { cols, quadSize, roomDepth, roomHeight, rooms, roomsNum, roomWidth, rows } from "./state";
+import { array, rng } from "./util";
+
+declare var Scene: HTMLDivElement, Back: HTMLCanvasElement, Front: HTMLCanvasElement,
+  img: HTMLImageElement, div1: HTMLDivElement, DEFS: Element;;
 
 
 export let recolorFiltered = (initalFilter: string, filter: string, i: number) =>
@@ -70,9 +74,10 @@ export function numsToColors(a: number, b: number) {
 }
 
 export function flyingText(text: string, pos: XYZ, className?: string) {
+  //console.log(text,pos,className, text>0);
   let div = document.createElement("div");
   div.classList.add("ftext");
-  div.classList.add(className as any);
+  className && div.classList.add(className as any);
   div.innerHTML = `<div>${text}</div>`;
   Scene.appendChild(div);
   setTimeout(() => Scene.removeChild(div), 3000);
@@ -85,10 +90,10 @@ export function positionDiv(d: HTMLElement, p: XYZ, transform = '') {
   d.style.transform = `translateZ(${p[1]}px) ` + transform;
 }
 
-export function fillWithPattern(canvas: HTMLCanvasElement, pattern: CanvasPattern) {
+export function fillWithPattern(canvas: HTMLCanvasElement, pattern: CanvasPattern, rect?: [number, number, number, number]) {
   let cb = gcx(canvas);
   cb.fillStyle = pattern;
-  cb.fillRect(0, 0, canvas.width, canvas.height);
+  cb.fillRect(...(rect || [0, 0, canvas.width, canvas.height]));
 }
 
 export function setCanvasSize(c: HTMLCanvasElement, width: number, height: number, internalScale = 1) {
@@ -99,23 +104,6 @@ export function setCanvasSize(c: HTMLCanvasElement, width: number, height: numbe
   return c
 }
 
-export function roomColRow(rnum: number) {
-  return [~~(rnum / cols), rnum % cols]
-}
-
-export function addCarpet(rnum: number) {
-  let [col, row] = roomColRow(rnum);
-  let c = element(`ca${rnum}`, 'carpet', { top: `${++row * roomHeight}px`, left: `${col * roomWidth}px` }, "canvas")
-  setCanvasSize(c, roomWidth, roomDepth, 2);
-  return c
-}
-
-export function addWallpaper(rnum: number) {
-  let [col, row] = roomColRow(rnum);
-  let c = element(`wp${rnum}`, 'wp', { top: `${row * roomHeight}px`, left: `${col * roomWidth}px` }, "canvas")
-  setCanvasSize(c, roomWidth, roomHeight, 2);
-  return c
-}
 
 
 export function element(id: string, className: string, style: Partial<CSSStyleDeclaration>, name = "canvas") {
@@ -136,7 +124,43 @@ export function scaleCanvas(orig: HTMLCanvasElement, n: number) {
   return c
 }
 
-export function drawScaled(c: HTMLCanvasElement, img: HTMLCanvasElement, x: number, y: number, scale: number) {
+export function drawScaled(c: HTMLCanvasElement, img: HTMLCanvasElement, x: number, y: number, scale = 1) {
   gcx(c).imageSmoothingEnabled = false;
   gcx(c).drawImage(img, x, y, img.width * scale, img.height * scale)
 }
+
+
+
+
+
+/*
+
+export function roomPos(rnum: number){
+  let [col, row] = roomColRow(rnum);   
+  return [roomWidth * col * 2, roomHeight * row * 2, roomWidth * 2, roomHeight * 2, roomDepth*2-1, col, row];
+}
+
+
+export function createShade(rnum:number){
+  let [l, t, w, h, d, c, r] = roomPos(rnum);
+}
+
+export function roomColRow(rnum: number) {
+  return [rnum % cols, ~~(rnum / cols)]
+}
+
+export function addCarpet(rnum: number) {
+  let [col, row] = roomColRow(rnum);
+  let c = element(`ca${rnum}`, 'carpet', { top: `${++row * roomHeight}px`, left: `${col * roomWidth}px` }, "canvas")
+  setCanvasSize(c, roomWidth, roomDepth, 2);
+  return c
+}
+
+export function addWallpaper(rnum: number) {
+  let [col, row] = roomColRow(rnum);
+  let c = element(`wp${rnum}`, 'wp', { top: `${row * roomHeight}px`, left: `${col * roomWidth}px` }, "canvas")
+  setCanvasSize(c, roomWidth, roomHeight, 2);
+  return c
+}
+
+*/

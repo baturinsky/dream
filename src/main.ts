@@ -144,9 +144,3 @@ function loop(t) {
   if (!current?.held.length)
     phantom.div.style.opacity = '0';
 }
-
-export type Room = Entity & {
-  start: number
-}
-
-

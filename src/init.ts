@@ -1,11 +1,10 @@
-import { filtered, createPattern, recolor, gcx, outl, solid, transp, fillWithPattern, setCanvasSize, element, addCarpet, spriteCanvas, scaleCanvas, addWallpaper, TreeSprites, drawScaled } from "./graphics";
+import { filtered, createPattern, recolor, gcx, outl, solid, transp, fillWithPattern, setCanvasSize, element, addCarpet, spriteCanvas, scaleCanvas, addWallpaper, TreeSprites, drawScaled, updateFront, drawRoom, redrawRooms } from "./graphics";
 import { createEntity, ItemTemplate, KindOf, roomDoorPos, SceneryTemplate } from "./entity";
 import { cols, roomWidth, rows, roomHeight, roomDepth, roomsNum } from "./state";
-import { rng } from "./util";
+import { array, rng } from "./util";
 
 declare var Scene: HTMLDivElement, Back: HTMLCanvasElement, Front: HTMLCanvasElement;
-
-
+export let walls: HTMLCanvasElement[], floors: HTMLCanvasElement[];
 
 export function prepareScene() {
   let s = ""
@@ -17,29 +16,23 @@ export function prepareScene() {
 
   Front.style.transform = `translateZ(${roomDepth}px)`
 
-  fillWithPattern(Back, createPattern(solid("2f", 1)));
-
-  let cb = gcx(Front);
-  cb.fillStyle = createPattern(solid("2g", 1))
-  for (let i = 0; i < cols; i++) cb.fillRect(i * roomWidth * 2 - 10, 0, 20, 1e4);
-  for (let i = 0; i < rows; i++) cb.fillRect(0, i * roomHeight * 2 - 10, 1e4, 20)
-
   let wallPattern = createPattern(solid("gf", 2))
-  let floorPattern = createPattern(solid("rq", 1))
 
-  for (let i = 0; i <= cols; i++) {
+  walls = array(cols + 1, i => {
     let c = element(`w${i}`, 'wall', { left: `${i * roomWidth}px` })
     setCanvasSize(c, roomDepth, roomHeight * rows, 2)
     fillWithPattern(c, wallPattern)
-  }
+    return c
+  })
 
-  for (let i = 0; i <= rows; i++) {
-    let c = element(`f${i}`, 'floor', { top: `${i * roomHeight}px` })
-    setCanvasSize(c, roomWidth * cols, roomDepth, 2)
-    fillWithPattern(c, floorPattern)
-  }
+  floors = array(rows + 1, i =>
+    setCanvasSize(element(`f${i}`, 'floor', { top: `${i * roomHeight}px` }),
+      roomWidth * cols, roomDepth, 2)
+  )
 
-  for (let i = 0; i < roomsNum; i++) {
+  updateFront()
+
+  array(roomsNum + cols, i => {
     createEntity({
       ...SceneryTemplate,
       shape: 0x50,
@@ -49,23 +42,30 @@ export function prepareScene() {
       scale: 2,
       pos: roomDoorPos(i)
     })
-  }
+  })
 
-  let f = addCarpet(0);
+  redrawRooms();
+
+
+  /*let f = addCarpet(0);
   let grass = createPattern(solid("ba", 9))
   fillWithPattern(f, grass)
   let road = scaleCanvas(transp("45", 11), 16);
-  gcx(f).fillStyle = createPattern(road);
   gcx(f).globalAlpha = 0.5;
-  gcx(f).fillRect(0, 0, f.width, f.height);
+  fillWithPattern(f, createPattern(road))
 
   f = addWallpaper(0);
   let trunk = outl('57', TreeSprites), top = outl('a9', TreeSprites + 2)
   gcx(f).fillStyle = grass;
-  gcx(f).fillRect(0, f.height*.8, f.width, f.height*.2);
-  for (let i = 0; i < 5; i++) {
-    let h = rng(20)
-    drawScaled(f, trunk, 16 + i * 100, 166 - h, 8);
-    drawScaled(f, top, 16 + i * 100, 130 - h, 8);
-  }
+  gcx(f).fillRect(0, f.height * .5, f.width, f.height * .5);
+  for (let i = 110; i>4; i--) {
+    let h = 2 * i**.7, x = rng(roomWidth * 2);
+    gcx(f).save()
+    gcx(f).translate(x, roomHeight * 2 - 90 - h);
+    let scale = 60 / (3 + h*.6);
+    gcx(f).scale(scale, scale)
+    drawScaled(f, trunk, 0, 0);
+    drawScaled(f, top, 0, -3);
+    gcx(f).restore()
+  }*/
 }

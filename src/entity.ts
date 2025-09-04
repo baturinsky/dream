@@ -1,7 +1,7 @@
 import { aspectsToString, aspectsSum, inferLevel, aspectsMul } from "./aspects";
 import { groundPos, infoShownFor, itemOrPerson, updateInfo } from "./controls";
 import { Aspects, Items, Materials, Races, Types } from "./data";
-import { CombatStats, cooldown, dealDamage, maxhp, continueCombat, sleep } from "./dream";
+import { CombatStats, cooldown, dealDamage as doCombatAction, maxhp, continueCombat, sleep } from "./dream";
 import { spriteCanvas, recolor, gcx, GloveShape, LegShape, outl, AspectSprites, positionDiv } from "./graphics";
 import { entities, current } from "./main";
 import { cols, lastSpriteId, nextSpriteId, roomHeight, rooms, roomWidth } from "./state";
@@ -184,14 +184,14 @@ export function waitAnimation(duration: number) {
 
 export function recoilAnimation(defender: Entity) {
   return [() => walkTo(defender, sum(defender.combat.pos, [facingX(defender) * -20, 0, 0]), { mode: RECOIL }),
-  () => walkTo(defender, defender.combat.pos, { mode: RECOIL }),
+  () => defender.combat.hp ? walkTo(defender, defender.combat.pos, { mode: RECOIL }) : null,
   ]
 }
 
-export function attackAnimation(attacker: Entity, defender: Entity, onAttack = () => { }) {
+export function combatActionAnimation(attacker: Entity, defender: Entity, onAction = () => { }) {
   return [
     () => walkTo(attacker, defender.combat.pos, { mode: ATTACK }),
-    () => { dealDamage(attacker, defender); onAttack() },
+    () => { doCombatAction(attacker, defender); onAction() },
     () => walkTo(attacker, attacker.combat.pos, { mode: ATTACK }),
     () => { attacker.combat.delay = cooldown(attacker); continueCombat(roomNumber(attacker.pos)) },
   ]
@@ -238,7 +238,11 @@ export function updateEntity(e: Entity, parentPos?: XYZ) {
   d.classList.add("k" + e.kind)
   d.classList.toggle("right", e.right)
 
-  positionDiv(d, p, (e.right ? lookRight : "") + (e.transform ?? ''))
+  let t = (e.right ? lookRight : "") + (e.transform ?? '') + (e.combat?.hp == 0 ? "rotateZ(90deg)translateX(8px)" : '');
+
+  //if (e.combat?.hp == 0)    debugger
+
+  positionDiv(d, p, t)
 
   //let transform = `translateZ(${pos[1]}px)` + (e.right ? lookRight : "") + (e.transform ?? '');
   /*d.style.left = `${p[0]}px`
@@ -383,12 +387,9 @@ export function roomNumber(pos: XYZ) {
   return ~~(pos[0] / roomWidth) + cols * ~~(pos[2] / roomHeight - 1)
 }
 
-export function roomPos(n: number) {
-  return [(n % cols) * roomWidth, 0, roomHeight * ~~(n / cols + 1)] as XYZ
-}
 
 export function roomDoorPos(n: number) {
-  return sum(roomPos(n), [roomWidth / 2, 0, 0]) as XYZ;
+  return sum(roomPos(n), [roomWidth / 2, 1, 0]) as XYZ;
 }
 
 export function entityLook(e?: Entity) {
@@ -558,7 +559,7 @@ export function aspect(e: Entity, letter: string) {
 }
 
 export function setTitle(e: Entity, text: string) {
-  if(e.title)
+  if (e.title)
     e.title.innerHTML = text
 }
 

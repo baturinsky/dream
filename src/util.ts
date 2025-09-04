@@ -1,4 +1,3 @@
-import { XYZ } from "./entity";
 import { palette } from "./main";
 import { RGBA } from "./palettes";
 
@@ -117,4 +116,8 @@ export function colorsStyle(colors: string) {
   let [a, b] = [...colors].map(c => palette[Number.parseInt(c, 36)]);
   let bg = `background:${toCSSColor(a)};border:solid 2px ${toCSSColor(b)}`;
   return bg
+}
+
+export function array<T>(length:number,f:(index: number) => T){
+  return [...new Array(length)].map((_,i)=>f(i))
 }

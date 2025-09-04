@@ -1,3 +1,5 @@
+import { array } from "./util";
+
 export type RGBA = [number, number, number, number]
 
 export function convertPalette(raw: string) {
@@ -8,7 +10,7 @@ export function parsePalette(raw: string) {
   return [...raw.matchAll(/(\w)(\w)(\w)/g)].map(v => [...v.slice(1, 4).map(v => ~~(Number.parseInt(v, 36) / 36 * 100) / 100),1]) as RGBA[]
 }
 
-export const generatePalette = () => [...new Array(36)].map((_, i) =>
+export const generatePalette = () => array(36, i =>
   i < 6 ? [i / 6, i / 6, i / 6, 1] :
     i < 10 ? [0, 0, 0, i / 4 - 1] :
       [i % 3 *.45, ~~(i / 9) / 2 - .5, ~~(i / 3) % 3 * .45, 1]
