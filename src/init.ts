@@ -1,7 +1,9 @@
-import { filtered, createPattern, recolor, gcx, outl, solid, transp, fillWithPattern, setCanvasSize, element, addCarpet, spriteCanvas, scaleCanvas, addWallpaper, TreeSprites, drawScaled, updateFront, drawRoom, redrawRooms } from "./graphics";
-import { createEntity, ItemTemplate, KindOf, roomDoorPos, SceneryTemplate } from "./entity";
-import { cols, roomWidth, rows, roomHeight, roomDepth, roomsNum } from "./state";
+import { filtered, createPattern, recolor, gcx, outl, solid, transp, fillWithPattern, setCanvasSize, element, GloveShape, LegShape} from "./graphics";
+import { cols, roomWidth, rows, roomHeight, roomDepth, roomsNum } from "./consts";
 import { array, rng } from "./util";
+import { updateFront } from "./room";
+import { XY, KindOf, Entity, shapeAndColor } from "./entity";
+import { rooms } from "./main";
 
 declare var Scene: HTMLDivElement, Back: HTMLCanvasElement, Front: HTMLCanvasElement;
 export let walls: HTMLCanvasElement[], floors: HTMLCanvasElement[];
@@ -26,25 +28,13 @@ export function prepareScene() {
   })
 
   floors = array(rows + 1, i =>
-    setCanvasSize(element(`f${i}`, 'floor', { top: `${i * roomHeight}px` }),
+    setCanvasSize(element(`f${i}`, 'floor', { top: `${++i * roomHeight}px` }),
       roomWidth * cols, roomDepth, 2)
   )
 
   updateFront()
 
-  array(roomsNum + cols, i => {
-    createEntity({
-      ...SceneryTemplate,
-      shape: 0x50,
-      colors: "ef",
-      type: "Door",
-      level: i,
-      scale: 2,
-      pos: roomDoorPos(i)
-    })
-  })
-
-  redrawRooms();
+  rooms.forEach(r=>r.draw())
 
 
   /*let f = addCarpet(0);

@@ -132,6 +132,18 @@
 
   #Debug #FPS {}
 
+
+  @keyframes blind {
+
+    0%, 100% {
+      filter: opacity(0);
+    }
+
+    20% {
+      filter: opacity(1);
+    }
+  }
+
   @keyframes blink {
     0% {
       filter: brightness(0.8);
@@ -232,6 +244,10 @@
 
   .blink {
     animation: blink infinite alternate .5s;
+  }
+
+  .blind{
+    animation: blind 2s;
   }
 
   .dn {

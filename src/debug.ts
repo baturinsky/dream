@@ -1,16 +1,17 @@
 import { mouseTarget } from "./controls";
-import { palette, current } from "./main";
+import { palette, current, SfxTemplate } from "./main";
 import { convertPalette, generatePalette, parsePalette, RGBA, sweetie16 } from "./palettes";
-import { createEntity, updateEntity, ItemTemplate, KindOf, SfxTemplate, roomEntities, roomNumber, parentPos, roomWalkAnimation, sfx, showEmote, setActions, inDream } from "./entity";
+import { createEntity, updateEntity, parentPos, roomWalkAnimation, sfx, showEmote, setActions, inDream } from "./entity";
 import { Aspects, Items, Materials } from "./data";
 import { AspectSprites, BodySprites, outl } from "./graphics";
-import { loadAll, roomHeight, saveAll } from "./state";
+import { loadAll, saveAll } from "./state";
 import { japaneseName, randomElement, RNG, sum, toCSSColor } from "./util";
-import { sleep as sleep, wake } from "./dream";
+import { roomOf } from "./room";
+import { roomHeight } from "./consts";
 
 declare var Debug: HTMLDivElement, Preview: HTMLDivElement;
 
-export let curFront = '1', curBack = '2', curSprite = 0;
+export let curFront = 1, curBack = 2, curSprite = 0;
 
 
 export function paletteLine(rgb: RGBA) {
@@ -115,7 +116,7 @@ addEventListener("keydown", e => {
   }
 
   if (e.code == "KeyT") {
-    let neighbors = roomEntities(roomNumber(current.pos));
+    let neighbors = roomOf(current).entries();
     let ne = randomElement(neighbors);
     setActions(current, roomWalkAnimation(current, parentPos(ne), 15));
   }
@@ -128,16 +129,16 @@ addEventListener("keydown", e => {
   }
 
   if (e.code == "KeyN") {
-    if(inDream(current)){
-      wake(roomNumber(current.pos))
+    if (inDream(current)) {
+      roomOf(current).wake()
     } else {
-      sleep(current)
+      roomOf(current).sleep(current)
     }
   }
 })
 
 export function createDebugSprite() {
-  return createEntity({ ...SfxTemplate, shape: curSprite, colors: curFront + curBack, pos: [0, 0, 0] })
+  return createEntity({ ...SfxTemplate, shape: curSprite, colors: curFront + '' + curBack, pos: [0, 0, 0] })
 }
 
 export function initDebug() {

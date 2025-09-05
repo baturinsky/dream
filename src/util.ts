@@ -64,7 +64,7 @@ export function weightedRandom(list: number[], gen = rng) {
   return i;
 }
 
-export function weightedRandomF<T>(list: T[], F:Function, gen = rng) {
+export function weightedRandomF<T>(list: T[], F: Function, gen = rng) {
   let foo = list.map(F as any);
   let ind = weightedRandom(foo as any);
   return list[ind] as T;
@@ -118,6 +118,8 @@ export function colorsStyle(colors: string) {
   return bg
 }
 
-export function array<T>(length:number,f:(index: number) => T){
-  return [...new Array(length)].map((_,i)=>f(i))
+export function array<T>(length: number, f: (index: number) => T) {
+  return [...new Array(length)].map((_, i) => f(i))
 }
+
+export let delay = (dur: number) => new Promise(done => setTimeout(done, dur))

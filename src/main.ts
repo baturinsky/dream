@@ -2,15 +2,51 @@ import { initControls, rezoom, updateCam, updateInfo } from "./controls";
 import { initDebug } from "./debug";
 import { prepareScene } from "./init";
 import { convertedPineapple32, convertPalette, parsePalette, pineapple32 } from "./palettes";
-import { PersonTemplate, createEntity, updateEntity, ItemTemplate, Entity, sfx as sfx, 
-  KindOf, SfxTemplate, removeEntity, updateAll, exploreItemsNearby, decayAspects, createDiv, dreaming } from "./entity";
-import { AspectSprites, BodySprites } from "./graphics";
-import { japaneseName, randomElement, rng, weightedRandomOKey } from "./util";
+import {
+  createEntity, updateEntity, Entity, sfx as sfx,
+  KindOf, removeEntity, updateAll, exploreItemsNearby, decayAspects, createDiv, dreaming,
+  shapeAndColor,
+  XY
+} from "./entity";
+import { AspectSprites, BodySprites, GloveShape, LegShape } from "./graphics";
+import { array, japaneseName, randomElement, rng, weightedRandomOKey } from "./util";
 import { Aspects, Items, Materials } from "./data";
-import { roomHeight, cols, roomWidth, roomDepth } from "./state";
+import { roomHeight, cols, roomWidth, roomDepth, roomsNum } from "./consts";
+import { Room } from "./room";
 
 declare var img: HTMLImageElement, FPS: HTMLDivElement, Scene: HTMLDivElement;
 
+export const
+  PersonTemplate = {
+    bitPos: [[3, 1], [2, 14], [2, 10], [2, 13]] as XY[],
+    mountPoint: [0, 0, 16],
+    size: [16, 24] as XY,
+    origin: "75% 50%",
+    kind: KindOf.Person,
+    makeBits: (e: Entity) => [
+      [e.shape, e.colors],
+      [LegShape, e.colors],
+      shapeAndColor(e.chest),
+      [GloveShape, e.colors]
+    ]
+  } as Entity,
+  SceneryTemplate = {
+    bitPos: [[0, 0]] as XY[],
+    size: [10, 10] as XY,
+    kind: KindOf.Scenery,
+    makeBits: (e: Entity) => e && [[e.shape, e.colors]]
+  } as Entity,
+  ItemTemplate = {
+    ...SceneryTemplate,
+    mountPoint: [5, 0, 0],
+    kind: KindOf.Item,
+  } as Entity,
+  SfxTemplate = { ...SceneryTemplate, kind: KindOf.SFX }
+  ;
+
+export const Templates = [,
+  PersonTemplate, ItemTemplate, SceneryTemplate, SfxTemplate
+] as Entity[];
 
 //console.log(convertPalette(pineapple32));
 
@@ -21,7 +57,7 @@ export let
 
 export let catSprite: HTMLCanvasElement;
 
-export let cat: Entity, dog: Entity, phantom: Entity, pointer: Entity, current: Entity, entities: {[id:number]:Entity} = {};
+export let cat: Entity, dog: Entity, phantom: Entity, pointer: Entity, current: Entity, entities: { [id: number]: Entity } = {};
 
 onload = () => {
   img.onload = init;
@@ -29,17 +65,21 @@ onload = () => {
 }
 
 export function selectPerson(e?: Entity) {
-  if (!e)
-    return;
   let old = current;
-  current = e;
+  current = e as any;
   updateAll(old);
-  updateAll(current);
-  current.div.appendChild(pointer.div);
+  if (current) {
+    updateAll(current);
+    current.div.appendChild(pointer.div);
+  }
 }
 
+export let rooms: Room[] = []
+
 function init() {
+  rooms = array(roomsNum, id => new Room(id))
   prepareScene()
+  rooms.forEach(m => m.md())
   rezoom()
   initControls()
   updateCam()
@@ -119,7 +159,7 @@ function loop(t) {
     }
     if (s.kind == KindOf.Person) {
       let dream = dreaming(s);
-      if(dream){
+      if (dream) {
       } else if (dt > rng() * 3000) {
         decayAspects(s);
         exploreItemsNearby(s);

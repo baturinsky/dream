@@ -1,7 +1,7 @@
 import { current, entities, phantom, selectPerson } from "./main";
 import { dropHeldEntity, holdEntity, updateEntity, XY, XYZ, roomWalkAnimation, Entity, simpleCopy, updateCanvas, parentPos, absolutePos, finalParent, KindOf, screenSize, info, setActions, waitAnimation, inDream, useItem } from "./entity";
 import { sum } from "./util";
-import { roomHeight, roomsNum } from "./state";
+import { roomHeight, roomsNum } from "./consts";
 
 declare var Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, Back: HTMLCanvasElement, DEFS: Element, Menu: HTMLDivElement, Info: HTMLDivElement;
 
@@ -35,7 +35,7 @@ export function initControls() {
 
 
     let [x, y, fl, v] = mouseTarget(e);
-    let to = [x, y, v * roomHeight] as XYZ;
+    let to = [x, y, (v + 1) * roomHeight] as XYZ;
 
     let actions;
 
@@ -52,7 +52,7 @@ export function initControls() {
       let te = entities[v];
       if (te && te != current && !inDream(te)) {
         if (e.button == 2) {
-          actions = [...roomWalkAnimation(current, parentPos(te), 15), ()=>useItem(current, te)]
+          actions = [...roomWalkAnimation(current, parentPos(te), 15), () => useItem(current, te)]
         }
         if (e.button == 0) {
           if (te.kind == KindOf.Person) {
@@ -74,8 +74,8 @@ export function initControls() {
       }
     }
 
-    if (actions && !inDream(current)){
-      setActions(current, [...actions, ()=>waitAnimation(5000)]);
+    if (actions && !inDream(current)) {
+      setActions(current, [...actions, () => waitAnimation(5000)]);
     }
 
     oncontextmenu = e => {
@@ -99,8 +99,8 @@ export function initControls() {
     }
 
     let [x, y, fl, v] = mouseTarget(e);
-    let to = [x, y, v * roomHeight] as XYZ;
-    let lastPicked = current?.held[0]    
+    let to = [x, y, (v + 1) * roomHeight] as XYZ;
+    let lastPicked = current?.held[0]
     let te = entities[v];
     updateInfo(te)
 
@@ -131,12 +131,12 @@ export function initControls() {
 
 export let infoShownFor: Entity;
 
-export function itemOrPerson(e:Entity){
+export function itemOrPerson(e: Entity) {
   return e.kind == KindOf.Item || e.kind == KindOf.Person
 }
 
 export function updateInfo(e?: Entity) {
-  
+
   let inf = info(e) || info(current);
 
   infoShownFor = e || current;
@@ -152,6 +152,6 @@ export function rezoom() {
 export function mouseTarget(e: MouseEvent) {
   let [id, x, y] = [(e.target as HTMLElement).id, e.offsetX, e.offsetY];
   /**First letter */
-  let fl = id[0], v = id.substring(1) as any;
-  return [x, y, fl, v]
+  let fl = id[0], v = 1 * (id.substring(1) as any);
+  return [x, y, fl, v] as [number, number, string, number]
 }

@@ -76,19 +76,19 @@ export const Races = numberValues(Object.fromEntries(
   `Human:G
 Elf:B
 Cat:D
-Ogre:M
-Fairy
-Bird
-Rat
-Raven
-Skel
-Imp
-Dog
-Hippo
-Lizard
-Drago
-Alien
-Hare`.split("\n").map((line, ind) => {
+Ogre:H
+Fairy:M
+Bird:L
+Rat:D
+Raven:A
+Skel:C
+Imp:V
+Dog:S
+Hippo:H
+Lizard:B
+Drago:P
+Alien:K
+Hare:T`.split("\n").map((line, ind) => {
     let [name, aspects] = line.split(":");
     return [name, { name, aspects:aspectsFromString(aspects), ind, chance:1/(10+ind) } as any as
       { ind: number, name: string, aspects: TAspects, chance:number }]
