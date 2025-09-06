@@ -12,7 +12,7 @@ import { AspectSprites, BodySprites, GloveShape, LegShape } from "./graphics";
 import { array, japaneseName, randomElement, rng, weightedRandomOKey } from "./util";
 import { Aspects, Items, Materials } from "./data";
 import { roomHeight, cols, roomWidth, roomDepth, roomsNum } from "./consts";
-import { Room } from "./room";
+import { redrawRooms, Room } from "./room";
 
 declare var img: HTMLImageElement, FPS: HTMLDivElement, Scene: HTMLDivElement;
 
@@ -38,7 +38,7 @@ export const
   } as Entity,
   ItemTemplate = {
     ...SceneryTemplate,
-    mountPoint: [5, 0, 0],
+    //mountPoint: [5, 0, 0],
     kind: KindOf.Item,
   } as Entity,
   SfxTemplate = { ...SceneryTemplate, kind: KindOf.SFX }
@@ -60,6 +60,7 @@ export let catSprite: HTMLCanvasElement;
 export let cat: Entity, dog: Entity, phantom: Entity, pointer: Entity, current: Entity, entities: { [id: number]: Entity } = {};
 
 onload = () => {
+  DROP: console.log(123);
   img.onload = init;
   img.src = '16cols.gif';
 }
@@ -84,7 +85,6 @@ function init() {
   initControls()
   updateCam()
 
-
   cat = createEntity(
     {
       ...PersonTemplate,
@@ -94,36 +94,38 @@ function init() {
       type: "Cat",
       name: japaneseName(),
       chest: sfx(BodySprites + 2, "lk"),
-      pos: [20, 10, roomHeight]
+      pos: [320, 10, roomHeight]
     });
+
 
   dog = createEntity(
     {
       ...PersonTemplate,
       level: 1,
       shape: 0x1a,
+      material: 'Plain',
       colors: "qp",
       type: "Dog",
       name: japaneseName(),
       chest: sfx(BodySprites + 1, "ba"),
-      pos: [40, 10, roomHeight]
+      pos: [340, 10, roomHeight]
     });
 
+  createEntity({ ...ItemTemplate, type: "Brush", pos: [50, 10, roomHeight] })
+  createEntity({ ...ItemTemplate, type: "Brush", pos: [60, 10, roomHeight] })
 
+  rooms[1].open = true;
+ 
   phantom = createEntity({ ...SfxTemplate, opacity: 0.5, shape: 1, colors: "ab", pos: [0, 0, 0], noclick: true });
 
   phantom.canvas.classList.add("phantom");
 
   for (let i = 0; i < 30; i++) {
-    let item = Items[weightedRandomOKey(Items, it => it.chance)];
+    let type = weightedRandomOKey(Items, it => it.chance);
+
     createEntity({
       ...ItemTemplate,
-      kind: KindOf.Item,
-      type: item.name,
-      //shape: 0x50 + item.ind,
-      //scale: item.scale,
-      //colors: numsToColors(rng(32), rng(32)),
-      material: rng(2) ? randomElement(Object.keys(Materials)) : item.material,
+      type,
       pos: [
         rng(cols) * roomWidth + 10 + rng(roomWidth - 20),
         rng(roomDepth),
@@ -136,17 +138,28 @@ function init() {
 
   selectPerson(cat);
 
+  redrawRooms();
+
   loop(0)
 
   updateInfo()
 
-  initDebug()
+  //@ts-ignore
+  if (DEBUG)
+    initDebug()
 
 }
 
-let lastt = 0, fps = 0;
+let lastt = 0, fps = 0, cumulative = 0;
+
 function loop(t) {
-  let dt = t - lastt || 1;
+  let dt = Math.min(1000, t - lastt || 1);
+
+  if (~~((cumulative + dt) / 1000) > ~~((cumulative) / 1000)) {
+    console.log("tic");
+  };
+  cumulative+=dt;
+
   lastt = t;
   let tn = Date.now();
   fps = fps * .9 + (1000 / dt) * .1;
@@ -181,6 +194,6 @@ function loop(t) {
 
   })
   requestAnimationFrame(loop)
-  if (!current?.held.length)
+  if (!current?.held)
     phantom.div.style.opacity = '0';
 }

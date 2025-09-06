@@ -11,7 +11,7 @@ export type CombatStats = {
 }
 
 export function maxhp(e: Entity) {
-  return ~~((1 + aspect(e, 'H') + e.level * .2) * 10);
+  return ~~((1 + aspect(e, 'H') + e.level * .5) * 10);
 }
 
 export function cooldown(e: Entity) {
@@ -20,7 +20,7 @@ export function cooldown(e: Entity) {
 
 export function damage(attacker: Entity, target: Entity) {
   return ~~(
-    3 + (aspect(attacker, 'S') + attacker.level * .1) * rng() * 5
+    3 + (aspect(attacker, 'S') + attacker.level * .5) * rng() * 5
     - aspect(target, 'R') * rng()
   );
 }

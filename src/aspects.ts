@@ -1,7 +1,5 @@
 import { Aspects } from "./data";
-import { createDiv, SfxTemplate } from "./entity";
-import { AspectSprites } from "./graphics";
-import { colorsStyle, listSum } from "./util";
+import { array, colorsStyle, listSum, randomElement, rng, weightedRandomOKey } from "./util";
 
 export type TAspects = { [id: string]: number }
 
@@ -38,4 +36,18 @@ export function aspectsToString(a: TAspects) {
 
 export function inferLevel(a: TAspects) {
   return listSum(Object.values(a))
+}
+
+export function improve(a: TAspects, name: string, value: number) {
+  a[name] = (a[name] || 0) + value;
+}
+
+export function levelTo(aspects: TAspects, level: number) {
+  let il = inferLevel(aspects);
+  let b = {...aspects};
+  array(level-il).forEach(e=>{
+    let c = rng(2)?randomElement(Object.keys(Aspects)):weightedRandomOKey(b);
+    improve(b, c, .1)
+  })
+  return b;
 }

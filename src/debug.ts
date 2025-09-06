@@ -1,7 +1,7 @@
 import { mouseTarget } from "./controls";
 import { palette, current, SfxTemplate } from "./main";
 import { convertPalette, generatePalette, parsePalette, RGBA, sweetie16 } from "./palettes";
-import { createEntity, updateEntity, parentPos, roomWalkAnimation, sfx, showEmote, setActions, inDream } from "./entity";
+import { createEntity, updateEntity, parentPos, walkAnimation, sfx, showEmote, setActions, inDream } from "./entity";
 import { Aspects, Items, Materials } from "./data";
 import { AspectSprites, BodySprites, outl } from "./graphics";
 import { loadAll, saveAll } from "./state";
@@ -106,6 +106,7 @@ addEventListener("keydown", e => {
   }
   if (e.code == "KeyS") {
     let save = saveAll();
+    console.log(save);
     localStorage.setItem(saveName, JSON.stringify(save))
   }
 
@@ -118,7 +119,7 @@ addEventListener("keydown", e => {
   if (e.code == "KeyT") {
     let neighbors = roomOf(current).entries();
     let ne = randomElement(neighbors);
-    setActions(current, roomWalkAnimation(current, parentPos(ne), 15));
+    setActions(current, walkAnimation(current, parentPos(ne), 15));
   }
 
   if (e.code == "KeyE") {

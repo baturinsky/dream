@@ -1,7 +1,7 @@
-import { aspectsToString, aspectsSum, inferLevel, aspectsMul } from "./aspects";
+import { aspectsToString, aspectsSum, inferLevel, aspectsMul, improve } from "./aspects";
 import { nextSpriteId } from "./consts";
 import { groundPos, infoShownFor, itemOrPerson, updateInfo } from "./controls";
-import { Aspects, Items, Materials, Races, Types } from "./data";
+import { Aspects, Items, Materials, Races, TItem, TRace, TRaceOrItem, Types } from "./data";
 import { CombatStats, cooldown, dealDamage as doCombatAction, maxhp } from "./dream";
 import { spriteCanvas, recolor, gcx, GloveShape, LegShape, outl, AspectSprites, positionDiv } from "./graphics";
 import { entities, current, SfxTemplate } from "./main";
@@ -59,6 +59,9 @@ export type Entity = SpriteLayout & Gear & {
   deadAt: number
   transform: string
 
+  held?: Entity
+  heldMore: boolean
+
   /** DO SAVE */
 
   id: number
@@ -88,9 +91,9 @@ export type Entity = SpriteLayout & Gear & {
 
   level: number
 
-  held: Entity[]
-
   combat: CombatStats
+
+  hrz: boolean
 
 }
 
@@ -132,17 +135,14 @@ export function facingX(e: Entity) {
   return e.right ? 1 : -1;
 }
 
-export function roomWalkAnimation(e: Entity, to: XYZ, stopDistance = 0) {
+export function walkAnimation(e: Entity, to: XYZ, stopDistance = 0) {
   let fromRoom = roomOf(e), toRoom = roomAt(to);
-  if(toRoom == undefined)
+  if (toRoom == undefined)
     debugger
 
-  let xxx = roomAt(to)
-
-  
   if (toRoom == fromRoom)
     return [() => walkTo(e, to, { stopDistance })]
-  else{
+  else {
     let a = [
       () => walkTo(e, fromRoom.doorPos()),
       () => e.pos = sum(toRoom.doorPos(), [5, 0, 0]),
@@ -173,6 +173,7 @@ export function combatActionAnimation(attacker: Entity, defender: Entity, onActi
     () => { attacker.combat.delay = cooldown(attacker); roomOf(attacker).continueCombat() },
   ]
 }
+
 
 export function screenSize(e: Entity) {
   return [e.size[0] * e.scale, e.size[1] * e.scale]
@@ -213,9 +214,13 @@ export function updateEntity(e: Entity, parentPos?: XYZ) {
   d.style.opacity = e.opacity as any;
   d.classList.toggle('current', e == current)
   d.classList.add("k" + e.kind)
-  d.classList.toggle("right", e.right)
+  d.classList.toggle("right", !!e.right)
 
-  let t = (e.right ? lookRight : "") + (e.transform ?? '') + (e.combat?.hp == 0 ? "rotateZ(90deg)translateX(8px)" : '');
+  let t =
+    (e.right ? lookRight : "") +
+    (e.transform ?? '') +
+    //(e.hrz && e.div.parentNode == Scene ? 'rotateX(89deg)translateZ(-8px)':'') + 
+    (e.combat?.hp == 0 ? "rotateZ(90deg)translateX(8px)" : '');
 
   //if (e.combat?.hp == 0)    debugger
 
@@ -258,9 +263,6 @@ export function shapeAndColor(e?: Entity) {
 
 
 export function updateCanvas(e: Entity) {
-  if (e.material) {
-    e.colors = Materials[e.material].colors;
-  }
   if (e.makeBits) {
     e.bits = e.makeBits(e);
   }
@@ -294,20 +296,31 @@ export function updateCanvas(e: Entity) {
 
 
 export function createEntity(s: Entity) {
+  //if(s.type == "Dog")    debugger
   s.id ??= nextSpriteId();
-  s.held = []
-  let e = { canvas: createDiv(s), floor: 0, actionsQueue: [], 
-    ...s as any } as Entity;
-  let typ = Types[e.type];
+  let e = {
+    canvas: createDiv(s), floor: 0, actionsQueue: [],
+    ...s as any
+  } as Entity;
+  let proto: TItem = Types[e.type] as any;
 
   //if(e.kind == KindOf.SFX) debugger
 
-  if (typ) {
-    if (typ.placeh)
-      e.mountPoint ??= [5, 0, 9 - typ.placeh * 8];
-    e.shape ??= [0, 0x10, 0x50, 0, 0][e.kind] + typ.ind
-    e.scale ??= typ.scale;
+  if (proto) {
+    e.type ??= proto.name;
+    if (proto.placeh) {
+      e.mountPoint ??= [5, 0, 9 - proto.placeh * 8];
+      //console.log(proto.placeh, e.mountPoint);
+    }
+    e.shape ??= [0, 0x10, 0x50, 0, 0][e.kind] + proto.ind;
+    e.scale ??= proto.scale;
+    e.material ??= rng(2) || !proto.material ? randomElement(Object.keys(Materials)) : proto.material;
+
+    //e.hrz ??= proto.hrz;
+    //console.log(s.type, e.material, proto.material);
   }
+
+  e.colors = e.colors || Materials[e.material]?.colors;
 
   e.scale ??= 1;
 
@@ -342,21 +355,26 @@ export function holdEntity(parent: Entity, item: Entity, mountPoint?: XYZ) {
 
   if (item.kind != KindOf.Item)
     return;
+  if(item.parent)
+    dropHeldEntity(item.parent)
   //item.div.parentNode?.removeChild(item.div);
   parent.div.appendChild(item.div);
-  parent.held.unshift(item);
+  parent.held = item;
   item.parent = parent;
   item.pos = mountPoint ?? mul(parent.mountPoint, parent.scale);
   updateEntity(item);
 }
 
 export function dropHeldEntity(parent: Entity, pos?: XYZ) {
-  let item = parent.held.shift()
+  let item = parent.held
+  delete parent.held
   if (item) {
     item.pos = pos ?? parent.pos;
+    //if (parent.right && parent == current) item.right = !item.right;
     Scene.appendChild(item.div);
     delete item.parent;
-    updateEntity(item);
+    updateAll(item);
+    updateAll(parent);
   }
   return item
 }
@@ -409,8 +427,7 @@ export function inDream(e: Entity) {
 export function showEmote(e: Entity, aspect: string) {
   if (!aspect)
     return;
-  if (e.kind != KindOf.Person)
-    debugger
+  //if (e.kind != KindOf.Person)    debugger
   let a = Aspects[aspect];
   return createEntity({
     ...SfxTemplate,
@@ -467,12 +484,12 @@ export function examine(char: Entity, target: Entity) {
   learnedAmount = rngRounded(learnedAmount);
   if (!learnedAmount)
     return;
-  char.aspects = aspectsSum({ [aspect]: learnedAmount }, char.aspects)
+  improve(char.aspects, aspect, learnedAmount);
   char.recent.unshift(target.id);
   char.recent.length = 20;
   if (char == infoShownFor)
     updateInfo(char)
-  showEmote(char, aspect);
+  showEmote(target, aspect);
 }
 
 export function recencyMultiplier(char: Entity, item: Entity) {
@@ -490,7 +507,7 @@ export function exploreItemsNearby(char: Entity) {
   if (!target)
     return;
 
-  setActions(char, [...roomWalkAnimation(char, parentPos(target), 5), () => examine(char, target), () => waitAnimation(1000)]);
+  setActions(char, [...walkAnimation(char, parentPos(target), 10), () => examine(char, target), () => waitAnimation(1000)]);
 }
 
 export function idle(char: Entity) {
@@ -528,7 +545,7 @@ export function setTitle(e: Entity, text: string) {
 }
 
 export function writeHP(e: Entity) {
-  setTitle(e, `${e.combat?.hp}/${maxhp(e)} hp`);
+  setTitle(e, e.combat?.hp >= 0 ? `${e.combat?.hp}/${maxhp(e)} hp` : '');
 }
 
 export function randomRace() {
@@ -536,6 +553,13 @@ export function randomRace() {
 }
 
 export function useItem(user: Entity, item: Entity) {
+  let tool = user.held;
+  if (tool?.type == "Brush") {
+    item.colors = tool.colors;
+    updateAll(item)
+    return
+  }
+
   if (item.type == "Bed") {
     roomOf(user).sleep(user);
   }

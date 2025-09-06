@@ -62,14 +62,15 @@
   .carpet,
   .wall,
   .wp,
-  #Back,
-  #Front {
+  .curtain,
+  #Back {
     position: absolute;
     transform-origin: 0% 0%;
   }
 
-  #Front {
+  .curtain {
     pointer-events: none;
+    transform: translateZ(64px);
   }
 
   .wall {
@@ -225,9 +226,18 @@
     text-align: center;
   }
 
+  /*.right {
+    transform: scaleX(-1) translateX(16px);
+  }*/
+
   .right .etitle {
-    transform: scaleX(-1);
+    transform: scaleX(-1)
   }
+
+  .right>canvas{
+    transform-origin: 100% 0%;
+  }
+
 
   .etitle, .red, .grn{
     text-shadow: .2px .2px .2px #000;    
@@ -247,7 +257,9 @@
   }
 
   .blind{
-    animation: blind 2s;
+    pointer-events: none;
+    position: absolute;
+    animation: blind 4s;
   }
 
   .dn {
@@ -307,7 +319,6 @@
 <div id=Cam>
   <div id=Scene>
     <canvas id=Back></canvas>
-    <canvas id=Front></canvas>
   </div>
 </div>
 

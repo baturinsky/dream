@@ -1,4 +1,4 @@
-Bed
+v Bed
 Portrait
 Dye maker
 Dye
@@ -67,3 +67,17 @@ Venom: Asbestos, Garbage Bin
 
 Silver - Greed, Purity
 Diamond - Greed, Light
+
+
+DREAMS
+
+Ground:
+
+Grass
+Brick
+Sand
+
+Wall:
+Brick
+Stone
+Pattern

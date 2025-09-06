@@ -1,10 +1,11 @@
 import { XYZ } from "./entity";
 import { filters, palette } from "./main";
-import { quadSize } from "./consts";
+import { quadSize, roomDepth, roomHeight, roomWidth } from "./consts";
 
 declare var Scene: HTMLDivElement, Back: HTMLCanvasElement, Front: HTMLCanvasElement,
   img: HTMLImageElement, div1: HTMLDivElement, DEFS: Element;;
 
+export const w = roomWidth * 2, h = roomHeight * 2, d = roomDepth * 2 - 1;
 
 export let recolorFiltered = (initalFilter: string, filter: string, i: number) =>
   recolor(filtered(i, initalFilter), filter),
@@ -82,8 +83,8 @@ export function flyingText(text: string, pos: XYZ, className?: string) {
   positionDiv(div, pos);
 }
 
-export function positionDiv(div:HTMLElement, p: XYZ, transform = '') {
-  Object.assign(div.style, posToStyle(p, transform))  
+export function positionDiv(div: HTMLElement, p: XYZ, transform = '') {
+  Object.assign(div.style, posToStyle(p, transform))
 }
 
 export function posToStyle(p: XYZ, transform = '') {
@@ -94,10 +95,14 @@ export function posToStyle(p: XYZ, transform = '') {
   }
 }
 
-export function fillWithPattern(canvas: HTMLCanvasElement, pattern: CanvasPattern, rect?: [number, number, number, number]) {
+export function fillWithPattern(canvas: HTMLCanvasElement, pattern: CanvasPattern, rect?: [number, number, number, number], alpha = 1) {
   let cb = gcx(canvas);
+  if (alpha)
+    cb.globalAlpha = alpha;
   cb.fillStyle = pattern;
   cb.fillRect(...(rect || [0, 0, canvas.width, canvas.height]));
+  if (alpha)
+    cb.globalAlpha = 1;
 }
 
 export function setCanvasSize(c: HTMLCanvasElement, width: number, height: number, internalScale = 1) {
@@ -132,3 +137,4 @@ export function drawScaled(c: HTMLCanvasElement, img: HTMLCanvasElement, x: numb
   gcx(c).imageSmoothingEnabled = false;
   gcx(c).drawImage(img, x, y, img.width * scale, img.height * scale)
 }
+

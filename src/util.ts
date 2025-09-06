@@ -1,7 +1,10 @@
 import { palette } from "./main";
 import { RGBA } from "./palettes";
 
-export function toCSSColor([r, g, b, a]: RGBA) {
+export function toCSSColor(rgba: RGBA) {
+  if(!rgba)
+    return
+  let [r, g, b, a] = rgba;
   return `rgba(${r * 255},${g * 255},${b * 255},${a})`
 }
 
@@ -118,8 +121,8 @@ export function colorsStyle(colors: string) {
   return bg
 }
 
-export function array<T>(length: number, f: (index: number) => T) {
-  return [...new Array(length)].map((_, i) => f(i))
+export function array<T>(length: number, f: (index: number) => T = a=>a as T) {
+  return [...new Array(Math.max(length,0))].map((_, i) => f(i))
 }
 
 export let delay = (dur: number) => new Promise(done => setTimeout(done, dur))

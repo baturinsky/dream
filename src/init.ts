@@ -1,22 +1,20 @@
 import { filtered, createPattern, recolor, gcx, outl, solid, transp, fillWithPattern, setCanvasSize, element, GloveShape, LegShape} from "./graphics";
 import { cols, roomWidth, rows, roomHeight, roomDepth, roomsNum } from "./consts";
 import { array, rng } from "./util";
-import { updateFront } from "./room";
+import { redrawRooms, updateFront } from "./room";
 import { XY, KindOf, Entity, shapeAndColor } from "./entity";
 import { rooms } from "./main";
 
 declare var Scene: HTMLDivElement, Back: HTMLCanvasElement, Front: HTMLCanvasElement;
-export let walls: HTMLCanvasElement[], floors: HTMLCanvasElement[];
+export let walls: HTMLCanvasElement[], floors: HTMLCanvasElement[], curtains: HTMLCanvasElement[];
 
 export function prepareScene() {
   let s = ""
 
   Scene.innerHTML += s;
-  for (let c of [Back, Front]) {
-    setCanvasSize(c, roomWidth * cols, roomHeight * rows, 2)
-  }
+  setCanvasSize(Back, roomWidth * cols, roomHeight * rows, 2)
 
-  Front.style.transform = `translateZ(${roomDepth}px)`
+  //Front.style.transform = `translateZ(${roomDepth}px)`
 
   let wallPattern = createPattern(solid("gf", 2))
 
@@ -32,9 +30,17 @@ export function prepareScene() {
       roomWidth * cols, roomDepth, 2)
   )
 
-  updateFront()
+  curtains = array(roomsNum, i =>
+    setCanvasSize(element(`c${i}`, 'curtain', 
+      { top: `${(~~(i/cols)) * roomHeight}px`, left: `${i%cols * roomWidth}px` }),
+      roomWidth, roomHeight, 2)
+  )
 
-  rooms.forEach(r=>r.draw())
+  redrawRooms();
+
+  //updateFront()
+
+  
 
 
   /*let f = addCarpet(0);

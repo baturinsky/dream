@@ -1,8 +1,12 @@
-Talking
-Exploring
+Todo:
+Enemy generation
+Dream aspects/level generation
+Dream items generation
+Dream scenery generation
 
 Done:
 Floor change
 Item picking/placing
 Char switch
-
+Exploring
+Talking

@@ -3,36 +3,41 @@ import { roomWidth, roomHeight, roomDepth, cols, rows, roomsNum } from "./consts
 import { maxhp, cooldown, allies, unharmed } from "./dream";
 import {
   aspect, combatActionAnimation, createEntity, Entity, KindOf, parentPos,
-  randomRace, removeEntity, setActions, setTitle, sfx, updateAll, writeHP, XYZ
+  randomRace, removeEntity, setActions, setTitle, sfx, updateAll, writeHP, XYZ,
+  walkAnimation
 } from "./entity";
-import { createPattern, solid, fillWithPattern, element, setCanvasSize, gcx, BodySprites, posToStyle } from "./graphics";
-import { floors } from "./init";
+import { createPattern, solid, fillWithPattern, element, setCanvasSize, gcx, BodySprites, posToStyle, d, h, w, scaleCanvas, transp, drawScaled, outl, TreeSprites } from "./graphics";
+import { curtains, floors } from "./init";
 import { current, entities, PersonTemplate, rooms, SceneryTemplate, selectPerson } from "./main";
-import { array, delay, japaneseName, rng, sum, weightedRandom, weightedRandomF } from "./util";
+import { array, delay, japaneseName, RNG, rng, sum, weightedRandom, weightedRandomF } from "./util";
 
 declare var Scene: HTMLDivElement, Back: HTMLCanvasElement, Front: HTMLCanvasElement,
-  img: HTMLImageElement, div1: HTMLDivElement, DEFS: Element;;
-
-const w = roomWidth * 2, h = roomHeight * 2, d = roomDepth * 2 - 1;
+  img: HTMLImageElement, div1: HTMLDivElement, DEFS: Element;
 
 export class Room {
   col: number
   row: number
   l: number
   t: number
+  open: boolean
   dream: boolean;
+  /**Current dream aspects */
   aspects: TAspects;
+  /**Current dream clevel */
   level: number;
   pos: XYZ
+  stage: number = 0
+  dreamStart: number = 0
 
   constructor(public id: number) {
     this.col = id % cols;
     this.row = ~~(id / cols);
     this.l = roomWidth * this.col * 2;
     this.t = roomHeight * this.row * 2,
-      this.pos = [(id % cols) * roomWidth, 0, roomHeight * ~~(id / cols + 1)] as XYZ;
+    this.pos = [(id % cols) * roomWidth, 0, roomHeight * ~~(id / cols + 1)] as XYZ;
   }
 
+  /**make door */
   md() {
     createEntity({
       ...SceneryTemplate,
@@ -45,59 +50,120 @@ export class Room {
     })
   }
 
+
+
   draw() {
-    let backPattern = createPattern(solid("2f", rng(3) + 1));
-    fillWithPattern(Back, backPattern, [this.l, this.t, w, h])
-    fillWithPattern(floors[this.row], createPattern(solid("rq", rng(3) + 1)), [this.l, 0, w, d])
+    RNG(this.id*99 + (this.dream?this.stage +  this.dreamStart:0));
+
+    let f = floors[this.row];
+    let grass = createPattern(solid("ba", 9))
+
+    if (this.dream) {
+      let bc = gcx(Back);
+      bc.save()
+      bc.translate(this.l, this.t);
+
+      let trunk = outl('57', TreeSprites), top = outl('a9', TreeSprites + 2)
+      bc.fillStyle = "#008";
+      bc.fillRect(0, 0, w, h)
+
+      bc.fillStyle = grass;
+      bc.fillRect(0, 0 + h*.6, w, h*.4+3);
+
+      for (let i = 60; i > 4; i--) {
+        let th = 2 * i ** .7, x = rng(w);
+        bc.save()
+        bc.translate(x, h - th - 90);
+        let scale = 60 / (3 + th * .6);
+        bc.scale(scale, scale)
+        drawScaled(Back, trunk, 0, 0);
+        drawScaled(Back, top, 0, -3);
+        bc.restore()
+      }
+      
+      bc.restore()
+
+      fillWithPattern(f, grass)
+      let road = scaleCanvas(transp("45", 11), 16);
+      fillWithPattern(f, createPattern(road), undefined, .5)
+      
+    } else {
+
+      let backPattern = createPattern(solid("2f", rng(3) + 1));
+      fillWithPattern(Back, backPattern, [this.l, this.t, w, h])
+
+      fillWithPattern(f, createPattern(solid("rq", rng(3) + 1)))
+    }
+
+    //* Front */
+
+    let fp = createPattern(solid("2g", 1))
+    let cu = curtains[this.id];
+
+    gcx(cu).clearRect(0, 0, w, h)
+
+    //cu.style.pointerEvents = this.open && !this.dream ? "none" : "all";
+
+    if (!this.open) {
+      fillWithPattern(cu, fp, [0, 0, w, h])
+    } else {
+      fillWithPattern(cu, fp, [0, 0, 10, h])
+      fillWithPattern(cu, fp, [0, h - 10, w, 10])
+    }
+
+    /*if(this.dream){
+      gcx(cu).globalAlpha = 0.6
+      fillWithPattern(cu, createPattern(solid("2g", 12)), [10, 0, w-10, h-10])
+      gcx(cu).globalAlpha = 1
+    }*/
+
   }
 
-  addCarpet() {
-    let c = element(`ca${this.id}`, 'carpet', { top: `${++this.row * roomHeight}px`, left: `${this.col * roomWidth}px` }, "canvas")
-    setCanvasSize(c, roomWidth, roomDepth, 2);
-    return c
+  removeEnemies() {
+    this.chars(true).forEach(e => removeEntity(e));
   }
 
-  addWallpaper() {
-    let c = element(`wp${this.id}`, 'wp', { top: `${this.row * roomHeight} px`, left: `${this.col * roomWidth} px` }, "canvas")
-    setCanvasSize(c, roomWidth, roomHeight, 2);
-    return c
-  }
-
-  toggleDream(_dream: boolean) {
-    this.dream = _dream;
+  toggleDream(dream: boolean) {
+    this.dream = dream;
+    this.draw();
 
     for (let e of this.entries()) {
       setActions(e, [])
-      e.combat = {} as any;
       setTitle(e, "")
-      /**All dream items removed on wake*/
-      if (e.dream && !this.dream) {
-        removeEntity(e)
+      /**All dream items removed on wake, combat data cleared*/
+      if (!dream) {
+        e.combat = {} as any;
+        if (e.dream)
+          removeEntity(e)
       }
 
       /**All nondream non-person items hidden on dream, revealed at day*/
       if (!e.dream && e.kind != KindOf.Person) {
-        e.div.style.display = this.dream ? "none" : "block";
+        e.div.style.display = dream ? "none" : "block";
       }
+
+      writeHP(e);
     }
   }
 
-  entries() {
-    return Object.values(entities).filter(e => roomAt(parentPos(e)) == this)
+  entries(dream?: boolean) {
+    return Object.values(entities).filter(e => roomAt(parentPos(e)) == this && (dream === undefined || !e.dream == !dream))
+  }
+
+  chars(dream?: boolean) {
+    return this.entries(dream).filter(e => e.kind == KindOf.Person);
   }
 
   doorPos() {
     return sum(this.pos, [roomWidth / 2, 1, 0]) as XYZ;
   }
 
-  chars(dream: boolean | undefined = undefined) {
-    return this.entries().filter(e => e.kind == KindOf.Person && (dream === undefined || !e.dream == !dream));
-  }
 
   async wake() {
     this.blind();
     await delay(400);
     this.toggleDream(false);
+    this.stage = 0;
   }
 
   async sleep(dreamer: Entity) {
@@ -106,17 +172,12 @@ export class Room {
     this.toggleDream(true);
     this.aspects = dreamer.aspects;
     this.level = dreamer.level;
-    this.addEnemies();
-    this.initCombatantStats()
-    this.continueCombat();
+    this.dreamStart = Date.now();
+    this.nextEncounter();
   }
 
-  endCombat() {
-    this.wake()
-  }
-
-  addEnemies() {
-    for (let i = 0; i < 1; i++) {
+  nextEncounter() {
+    for (let i = 0; i < this.stage+1; i++) {
       createEntity(
         {
           ...PersonTemplate,
@@ -129,14 +190,12 @@ export class Room {
           dream: true
         });
     }
-  }
 
-  initCombatantStats() {
     for (let dream of [true, false]) {
       let cs = this.chars(dream);
       let pos: XYZ = sum(this.pos, [(dream ? 0.3 : 0.7) * roomWidth, 0, 0]);
       cs.forEach((e, i) => {
-        e.pos = sum(pos, [0, (i + .5) * roomDepth / cs.length, 0]);
+        e.pos = sum(pos, [0, ((i + .5) / cs.length * .7 + .3) *  roomDepth, 0]);
         e.right = dream;
         //console.log("ep", e.pos, roomAt(e.pos).id);
         e.combat = { pos: e.pos, hp: maxhp(e), delay: cooldown(e), aggro: 0 };
@@ -144,13 +203,33 @@ export class Room {
         updateAll(e);
       })
     }
+    this.continueCombat();
+  }
+
+  endCombat() {
+    if (this.living().filter(e => !e.dream).length == 0)
+      this.wake()
+    else {
+      this.stage ++;
+      this.removeEnemies()
+      this.chars().forEach(e => setActions(e, walkAnimation(e, sum(e.combat.pos, [-100, 0, 0]))))
+      this.blind();
+      this.chars()[0].actionsQueue.push(() => this.nextEncounter())
+      //this.nextEncounter()
+    }
+  }
+
+
+
+  living() {
+    return this.chars().filter(e => e.combat.hp > 0)
   }
 
   /**Returns false if combat is over */
   continueCombat() {
     if (!this.dream)
       return;
-    let living = this.chars().filter(e => e.combat.hp > 0);
+    let living = this.living();
     let minDelay = Math.min(...living.map(c => c.combat.delay));
     let attacker = living.find(c => c.combat.delay == minDelay) as Entity;
     if (!attacker)
@@ -182,12 +261,17 @@ export class Room {
   }
 
   blind() {
-    let b = element('', 'blind', posToStyle(sum(this.pos, [0, roomDepth, -roomHeight])))
+    let s = posToStyle(sum(this.pos, [0, roomDepth, -roomHeight]))
+    let b = element('', 'blind', s)
     setCanvasSize(b, roomWidth, roomHeight, 8);
     fillWithPattern(b, createPattern(solid("on", 11)));
-    setTimeout(() => Scene.removeChild(b), 1900);
+    setTimeout(() => Scene.removeChild(b), 3900);
   }
 
+}
+
+export function redrawRooms() {
+  rooms.forEach(r => r.draw())
 }
 
 export function updateFront() {
@@ -204,4 +288,3 @@ export function roomAt(pos: XYZ) {
 export function roomOf(e: Entity) {
   return roomAt(parentPos(e));
 }
-

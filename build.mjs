@@ -1,16 +1,15 @@
 import esbuild from "esbuild";
-import open from "open";
 
 let options = {
   entryPoints: ["src/main.ts"],
   bundle: true,
   sourcemap: true,
   outfile: "./public/bundle.js",
-  minify: false  
+  minify: false
 };
 
 let builder;
-let keys = new Set(process.argv.filter(k=>k.substring(0,2)=="--").map(k=>k.substring(2)));
+let keys = new Set(process.argv.filter(k => k.substring(0, 2) == "--").map(k => k.substring(2)));
 if (keys.has("serve")) {
   builder = esbuild.serve(
     {
@@ -19,9 +18,9 @@ if (keys.has("serve")) {
       onRequest: (r) => {
         console.log(r);
       }
-    }, {...options, watch:false})
-} else if(keys.has("minify")){
-  builder = esbuild.build({...options, minify: true});
+    }, { ...options, watch: false, define: {'DEBUG': 'true'} })
+} else if (keys.has("minify")) {
+  builder = esbuild.build({ ...options, minify: true , define: {'DEBUG': 'false'}});
 } else {
   builder = esbuild.build(options);
 }

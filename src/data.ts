@@ -37,19 +37,31 @@ Glass:wr:L:5
 Obsidian:no:D:2
 Copper:ef:T:5
 Silver:lx:P:3
-Asbestos:kb:V:1`.split("\n").map(line => {
+Asbestos:kb:V:1
+Plain:::1`.split("\n").map(line => {
     let [name, colors, aspects, chance] = line.split(":")
-    return [name, { colors, aspects:aspectsFromString(aspects), chance }]
+    return [name, { colors, aspects: aspectsFromString(aspects), chance }]
   })));
 
+
+export type TItem = {
+  scale: number,
+  aspects: TAspects,
+  material: string,
+  chance: number,
+  ind: number,
+  name: string,
+  placeh: number,
+  hrz: boolean
+};
 
 
 export const Items = numberValues(Object.fromEntries(
   `Door:2:10:Wooden:0:1:
-Bed:2:H:Wooden:10:.5
+Bed:2:H:Wooden:10:.5:
 Column:3:R:Stone:0:1:
 Apple:1:B:Plant:10:1:
-Chair:2:H:Wooden:10:1:
+Chair:2:H:Wooden:10:.5:
 Chest:1:G:Wooden:10:1:
 Shelf:2:G:Wooden:0:1:
 Stand:2::Stone:0:1:
@@ -64,13 +76,16 @@ Pedestal:1::Wooden::1:
 Mirror:2::Glass:5:1:
 Angel:2:P:Silver:3:1:
 Press:2::Iron:0:1:
-Brush:2::Cloth:0:1:
-Wine:1:A:Plant:5:1:`.split("\n").map((line, ind) => {
+Brush:1:::0:1:
+Wine:1:A:Plant:5:1:
+`.split("\n").map((line, ind) => {
     let [name, scale, aspects, material, chance, placeh] = line.split(":");
-    return [name, { name, scale, aspects:aspectsFromString(aspects), material, chance, ind, placeh } as any as
-      { scale: number, aspects: TAspects, material: string, chance: number, ind: number, name: string, placeh: number }]
-  })));
+    return [name, { name, scale, aspects: aspectsFromString(aspects), material, chance:chance??0, ind, placeh }]
+  }))) as { [id: string]: TItem };
 
+//Items.Brush.hrz = true;
+
+export type TRace = { ind: number, name: string, aspects: TAspects, chance: number };
 
 export const Races = numberValues(Object.fromEntries(
   `Human:G
@@ -90,12 +105,14 @@ Drago:P
 Alien:K
 Hare:T`.split("\n").map((line, ind) => {
     let [name, aspects] = line.split(":");
-    return [name, { name, aspects:aspectsFromString(aspects), ind, chance:1/(10+ind) } as any as
-      { ind: number, name: string, aspects: TAspects, chance:number }]
-  })));
+    return [name, { name, aspects: aspectsFromString(aspects), ind, chance: 1 / (10 + ind) }
+    ]
+  }))) as { [id: string]: TRace };
 
 
-export const Types = {...Races, ...Items}
+export type TRaceOrItem = TRace|TItem
+
+export const Types = { ...Races, ...Items } as {[id:string]:TRaceOrItem}
 
 export const suit =
   `Shirt
