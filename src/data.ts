@@ -22,6 +22,14 @@ Venom:Poison:ba`.split("\n").map((line, ind) => {
   })))
 
 
+export type TMaterial = {
+  name
+  colors
+  aspects
+  chance
+  room
+}
+
 
 export const Materials = numberValues(Object.fromEntries(
   `Wooden:67:H:10
@@ -38,10 +46,10 @@ Obsidian:no:D:2
 Copper:ef:T:5
 Silver:lx:P:3
 Asbestos:kb:V:1
-Plain:::1`.split("\n").map(line => {
+Abstract:::1`.split("\n").map(line => {
     let [name, colors, aspects, chance] = line.split(":")
     return [name, { colors, aspects: aspectsFromString(aspects), chance }]
-  })));
+  }))) as {[id:string]:TMaterial}
 
 
 export type TItem = {
@@ -50,18 +58,20 @@ export type TItem = {
   material: string,
   chance: number,
   ind: number,
-  name: string,
+  type: string,
   placeh: number,
   hrz: boolean
+  armor: boolean
 };
 
+export const ArmorsStartAt = 23
 
 export const Items = numberValues(Object.fromEntries(
   `Door:2:10:Wooden:0:1:
 Bed:2:H:Wooden:10:.5:
 Column:3:R:Stone:0:1:
 Apple:1:B:Plant:10:1:
-Chair:2:H:Wooden:10:.5:
+Chair:1.5:H:Wooden:10:1:
 Chest:1:G:Wooden:10:1:
 Shelf:2:G:Wooden:0:1:
 Stand:2::Stone:0:1:
@@ -78,10 +88,17 @@ Angel:2:P:Silver:3:1:
 Press:2::Iron:0:1:
 Brush:1:::0:1:
 Wine:1:A:Plant:5:1:
-`.split("\n").map((line, ind) => {
-    let [name, scale, aspects, material, chance, placeh] = line.split(":");
-    return [name, { name, scale, aspects: aspectsFromString(aspects), material, chance:chance??0, ind, placeh }]
+
+
+Shirt:1:T::1
+Robe:1:M::1
+Chain:1:S::1
+Plate:1:R::1`.split("\n").map((line, ind) => {
+    let [type, scale, aspects, material, chance, placeh] = line.split(":");
+    return [type, { armor:ind>=ArmorsStartAt, type, scale, aspects: aspectsFromString(aspects), material, chance: chance ?? 0, ind, placeh }]
   }))) as { [id: string]: TItem };
+
+console.log(Items);
 
 //Items.Brush.hrz = true;
 
@@ -110,12 +127,14 @@ Hare:T`.split("\n").map((line, ind) => {
   }))) as { [id: string]: TRace };
 
 
-export type TRaceOrItem = TRace|TItem
+export type TRaceOrItem = TRace | TItem
 
-export const Types = { ...Races, ...Items } as {[id:string]:TRaceOrItem}
+export const Types = { ...Races, ...Items } as { [id: string]: TRaceOrItem }
 
-export const suit =
-  `Shirt
-Robe
-Chain
-Plate`
+
+export const tips = {
+  1: `LMB to switch current character, walk around and pick/place items. RMB to use items (such as Bed).`,
+  2: "An item that you have found in the dream. Looking at it (happens automatically when awake) can help to remember something about reality (i.e. raise aspects).",
+  Bed: "RMB to sleep. You can increase your level and find some items in dreams. What you find in the dream is affected by the room number and the aspects of the bed and the dreamer.",
+  Brush: "Can recolor items"
+}

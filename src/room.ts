@@ -1,25 +1,29 @@
-import { TAspects } from "./aspects";
+import { inferLevel, levelTo, TAspects } from "./aspects";
 import { roomWidth, roomHeight, roomDepth, cols, rows, roomsNum } from "./consts";
-import { maxhp, cooldown, allies, unharmed } from "./dream";
+import { ArmorsStartAt, Items, Materials } from "./data";
+import { maxhp, cooldown, allies, unharmed, lootSuccess } from "./dream";
 import {
   aspect, combatActionAnimation, createEntity, Entity, KindOf, parentPos,
   randomRace, removeEntity, setActions, setTitle, sfx, updateAll, writeHP, XYZ,
-  walkAnimation
+  walkAnimation,
+  updateEntity,
+  entities
 } from "./entity";
 import { createPattern, solid, fillWithPattern, element, setCanvasSize, gcx, BodySprites, posToStyle, d, h, w, scaleCanvas, transp, drawScaled, outl, TreeSprites } from "./graphics";
 import { curtains, floors } from "./init";
-import { current, entities, PersonTemplate, rooms, SceneryTemplate, selectPerson } from "./main";
-import { array, delay, japaneseName, RNG, rng, sum, weightedRandom, weightedRandomF } from "./util";
+import { current, entitiesById, ItemTemplate, PersonTemplate, rooms, SceneryTemplate, selectPerson } from "./main";
+import { openRoom } from "./state";
+import { array, delay, japaneseName, randomElement, RNG, rng, sum, weightedRandom, weightedRandomF, weightedRandomOKey } from "./util";
 
 declare var Scene: HTMLDivElement, Back: HTMLCanvasElement, Front: HTMLCanvasElement,
   img: HTMLImageElement, div1: HTMLDivElement, DEFS: Element;
+
 
 export class Room {
   col: number
   row: number
   l: number
   t: number
-  open: boolean
   dream: boolean;
   /**Current dream aspects */
   aspects: TAspects;
@@ -27,14 +31,15 @@ export class Room {
   level: number;
   pos: XYZ
   stage: number = 0
-  dreamStart: number = 0
+  drst = 0
+  dur = 0
 
   constructor(public id: number) {
     this.col = id % cols;
     this.row = ~~(id / cols);
     this.l = roomWidth * this.col * 2;
     this.t = roomHeight * this.row * 2,
-    this.pos = [(id % cols) * roomWidth, 0, roomHeight * ~~(id / cols + 1)] as XYZ;
+      this.pos = [(id % cols) * roomWidth, 0, roomHeight * ~~(id / cols + 1)] as XYZ;
   }
 
   /**make door */
@@ -42,7 +47,7 @@ export class Room {
     createEntity({
       ...SceneryTemplate,
       shape: 0x50,
-      colors: "ef",
+      material: "Obsidian",
       type: "Door",
       level: this.id,
       scale: 2,
@@ -50,48 +55,103 @@ export class Room {
     })
   }
 
+  /**
+   * Room types
+   * 1 - grass+tree1
+   * 2 - grass+tree2
+   * 3 - grass+tree3
+   * 4 - grass+huts
+   * 5 - wastes+dead trees
+   * 6 - desert+cactus
+   * 7 - stone+rocks
+   * 8 - stone+walls
+   * 
+   */
 
+  drawTrees(rt) {
+    let topTypes = [null,
+      ['a9', 1],
+      ['ba', 2],
+      ['a9', 3],
+      ['57', 16],
+      0,
+      ['a9', 7, 1], //cactus
+      ['mn', 9],
+      ['mn', 8, 1],
+    ]
+
+    let trunkTypes = [0, 4, 4, 4, 0, 4]
+
+    let bc = gcx(Back);
+    for (let i = 60; i > 4; i--) {
+      let th = 2 * i ** .7, x = rng(w * .9) + .1;
+      bc.save()
+      bc.translate(x, h - th - 70);
+      let scale = 30 / (3 + th * .6);
+      bc.scale(scale, scale)
+      if (trunkTypes[rt])
+        drawScaled(Back, outl('57', TreeSprites + trunkTypes[rt]), 5, 6);
+      if (topTypes[rt])
+        drawScaled(Back, outl(topTypes[rt][0], TreeSprites + topTypes[rt][1]), 0, -8, topTypes[rt][2] ?? 2);
+      bc.restore()
+    }
+  }
 
   draw() {
-    RNG(this.id*99 + (this.dream?this.stage +  this.dreamStart:0));
-
     let f = floors[this.row];
-    let grass = createPattern(solid("ba", 9))
+
+    let bc = gcx(Back);
+
+    RNG(this.id * 99 + (this.dream ? (this.stage + this.drst % 1000) : 0));
 
     if (this.dream) {
-      let bc = gcx(Back);
-      bc.save()
-      bc.translate(this.l, this.t);
+      if (this.stage % 2) {
+        let bgm1 = randomElement(Object.values(Materials)).colors;
+        let bgm2 = randomElement(Object.values(Materials)).colors;
 
-      let trunk = outl('57', TreeSprites), top = outl('a9', TreeSprites + 2)
-      bc.fillStyle = "#008";
-      bc.fillRect(0, 0, w, h)
+        let backPattern = createPattern(solid(bgm1, rng(5) + 1));
+        fillWithPattern(Back, backPattern, [this.l, this.t, w, h])
+        fillWithPattern(f, createPattern(solid(bgm2, rng(3) + 1)))
 
-      bc.fillStyle = grass;
-      bc.fillRect(0, 0 + h*.6, w, h*.4+3);
+      } else {
 
-      for (let i = 60; i > 4; i--) {
-        let th = 2 * i ** .7, x = rng(w);
+        let rt = rng(8) + 1;
+
+        let ground = [0,
+          ['ba', 9], ['ba', 9], ['ba', 9], ['ba', 9], ['ij', 9], ['ij', 13],
+          ['mn', 14], ['mn', 14]
+        ][rt];
+
+        let grass = createPattern(solid(ground[0], ground[1]))
         bc.save()
-        bc.translate(x, h - th - 90);
-        let scale = 60 / (3 + th * .6);
-        bc.scale(scale, scale)
-        drawScaled(Back, trunk, 0, 0);
-        drawScaled(Back, top, 0, -3);
-        bc.restore()
-      }
-      
-      bc.restore()
+        bc.translate(this.l, this.t);
 
-      fillWithPattern(f, grass)
-      let road = scaleCanvas(transp("45", 11), 16);
-      fillWithPattern(f, createPattern(road), undefined, .5)
-      
+        let stops = [["#00f", "#f80"], ["#88f", "#00f"], ["#008", "#00f"]][rng(3)]
+        const gradient = bc.createLinearGradient(0, 0, 0, 100);
+        stops.forEach((v, i) => gradient.addColorStop(i, v))
+        bc.fillStyle = gradient;
+        bc.fillRect(0, 0, w, h)
+
+        bc.fillStyle = grass;
+        bc.fillRect(0, 0 + h * .6, w, h * .4 + 3);
+
+        this.drawTrees(rt);
+
+        bc.restore()
+
+        let fc = gcx(f);
+        fc.save()
+        fc.translate(this.l, this.t);
+        fillWithPattern(f, grass, [0, 0, w, h])
+        let road = scaleCanvas(transp("45", 11), 16);
+        fillWithPattern(f, createPattern(road), [0, 0, w, h], .5)
+        fc.restore()
+      }
+
     } else {
 
       let backPattern = createPattern(solid("2f", rng(3) + 1));
       fillWithPattern(Back, backPattern, [this.l, this.t, w, h])
-
       fillWithPattern(f, createPattern(solid("rq", rng(3) + 1)))
     }
 
@@ -119,6 +179,10 @@ export class Room {
 
   }
 
+  get open() {
+    return this.id ? this.id * 1 <= openRoom : openRoom >= 13
+  }
+
   removeEnemies() {
     this.chars(true).forEach(e => removeEntity(e));
   }
@@ -127,7 +191,7 @@ export class Room {
     this.dream = dream;
     this.draw();
 
-    for (let e of this.entries()) {
+    for (let e of this.entities()) {
       setActions(e, [])
       setTitle(e, "")
       /**All dream items removed on wake, combat data cleared*/
@@ -137,21 +201,17 @@ export class Room {
           removeEntity(e)
       }
 
-      /**All nondream non-person items hidden on dream, revealed at day*/
-      if (!e.dream && e.kind != KindOf.Person) {
-        e.div.style.display = dream ? "none" : "block";
-      }
-
+      updateEntity(e);
       writeHP(e);
     }
   }
 
-  entries(dream?: boolean) {
-    return Object.values(entities).filter(e => roomAt(parentPos(e)) == this && (dream === undefined || !e.dream == !dream))
+  entities(dream?: boolean) {
+    return entities(dream).filter(e => roomAt(parentPos(e)) == this)
   }
 
   chars(dream?: boolean) {
-    return this.entries(dream).filter(e => e.kind == KindOf.Person);
+    return this.entities(dream).filter(e => e.kind == KindOf.Person) as Entity[];
   }
 
   doorPos() {
@@ -166,26 +226,27 @@ export class Room {
     this.stage = 0;
   }
 
+
   async sleep(dreamer: Entity) {
     this.blind()
     await delay(400);
+    this.dur = 0;
+    this.drst = Date.now();
     this.toggleDream(true);
     this.aspects = dreamer.aspects;
     this.level = dreamer.level;
-    this.dreamStart = Date.now();
     this.nextEncounter();
   }
 
   nextEncounter() {
-    for (let i = 0; i < this.stage+1; i++) {
+    for (let i = 0; i < ~~(this.stage/3) + 1; i++) {
       createEntity(
         {
           ...PersonTemplate,
-          level: 1,
-          colors: "nm",
+          levelTo: this.level,
           type: randomRace(),
           name: japaneseName(),
-          chest: sfx(BodySprites + 2, "lk"),
+          chest: createEntity({...ItemTemplate, levelTo:this.level, type:randomElement(Object.keys(Items).slice(ArmorsStartAt))}),
           pos: this.doorPos(),
           dream: true
         });
@@ -195,47 +256,60 @@ export class Room {
       let cs = this.chars(dream);
       let pos: XYZ = sum(this.pos, [(dream ? 0.3 : 0.7) * roomWidth, 0, 0]);
       cs.forEach((e, i) => {
-        e.pos = sum(pos, [0, ((i + .5) / cs.length * .7 + .3) *  roomDepth, 0]);
+        e.pos = sum(pos, [0, ((i + .5) / cs.length * .7 + .3) * roomDepth, 0]);
         e.right = dream;
-        //console.log("ep", e.pos, roomAt(e.pos).id);
         e.combat = { pos: e.pos, hp: maxhp(e), delay: cooldown(e), aggro: 0 };
         writeHP(e);
         updateAll(e);
       })
     }
-    this.continueCombat();
-  }
 
-  endCombat() {
-    if (this.living().filter(e => !e.dream).length == 0)
-      this.wake()
-    else {
-      this.stage ++;
-      this.removeEnemies()
-      this.chars().forEach(e => setActions(e, walkAnimation(e, sum(e.combat.pos, [-100, 0, 0]))))
-      this.blind();
-      this.chars()[0].actionsQueue.push(() => this.nextEncounter())
-      //this.nextEncounter()
+    if (this.stage % 2) {
+      this.addItems(10, .2);
     }
+
+    this.fight();
   }
 
-
+  win() {
+    this.stage++;
+    this.entities(true).forEach(e => {
+      if (e.kind == KindOf.Item && lootSuccess()) {
+        e.dream = false;
+        updateEntity(e);
+      } else {
+        removeEntity(e);
+      }
+    })
+    this.removeEnemies()
+    this.chars().forEach(e => { if (e.combat.hp > 0) setActions(e, walkAnimation(e, sum(e.combat.pos, [-100, 0, 0]))) })
+    this.blind();
+    this.chars()[0].actionsQueue.push(() => this.nextEncounter())
+  }
 
   living() {
     return this.chars().filter(e => e.combat.hp > 0)
   }
 
-  /**Returns false if combat is over */
-  continueCombat() {
+  /**Do the next combat action*/
+  fight() {
     if (!this.dream)
       return;
     let living = this.living();
+
+    let livingEnemies = living.filter(e => e.dream).length;
+    if (livingEnemies == 0) {
+      return this.win()
+    } else if (livingEnemies == living.length) {
+      return this.wake()
+    }
+
     let minDelay = Math.min(...living.map(c => c.combat.delay));
     let attacker = living.find(c => c.combat.delay == minDelay) as Entity;
-    if (!attacker)
-      return this.endCombat();
 
-    let isHealing = weightedRandom([aspect(attacker, 'S'), aspect(attacker, 'M')]) == 1;
+    //if (!attacker)      return this.endCombat();
+
+    let isHealing = weightedRandom([aspect(attacker, 'S') + attacker.level*.1, aspect(attacker, 'M')]) == 1;
 
     let target: Entity | undefined;
 
@@ -254,8 +328,7 @@ export class Room {
 
     }
 
-    if (!target)
-      return this.endCombat();
+    //if (!target)     return this.endCombat();
 
     setActions(attacker, combatActionAnimation(attacker, target, () => living.forEach(c => c.combat.delay -= minDelay)));
   }
@@ -265,9 +338,29 @@ export class Room {
     let b = element('', 'blind', s)
     setCanvasSize(b, roomWidth, roomHeight, 8);
     fillWithPattern(b, createPattern(solid("on", 11)));
+    setTimeout(() => this.draw(), 800);
+
     setTimeout(() => Scene.removeChild(b), 3900);
   }
 
+  addItems(n: number, w: number = 1) {
+    for (let i = 0; i < n; i++) {
+      let type = weightedRandomOKey(Items, it => it.chance);
+
+      let e = createEntity({
+        ...ItemTemplate,
+        type,
+        levelTo: (this.level + this.stage) || 10,
+        pos: [
+          this.col * roomWidth + 10 + rng(roomWidth - 20),
+          rng(roomDepth) * w,
+          (this.row + 1) * roomHeight]          
+      })
+      e.level = inferLevel(e.aspects);
+      e.dream = this.dream;
+      updateEntity(e);
+    }
+  }
 }
 
 export function redrawRooms() {
@@ -286,5 +379,6 @@ export function roomAt(pos: XYZ) {
 }
 
 export function roomOf(e: Entity) {
-  return roomAt(parentPos(e));
+  return roomAt(parentPos(e)) || rooms[0];
 }
+

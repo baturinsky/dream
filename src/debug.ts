@@ -117,7 +117,7 @@ addEventListener("keydown", e => {
   }
 
   if (e.code == "KeyT") {
-    let neighbors = roomOf(current).entries();
+    let neighbors = roomOf(current).entities();
     let ne = randomElement(neighbors);
     setActions(current, walkAnimation(current, parentPos(ne), 15));
   }

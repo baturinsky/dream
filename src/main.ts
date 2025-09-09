@@ -4,15 +4,17 @@ import { prepareScene } from "./init";
 import { convertedPineapple32, convertPalette, parsePalette, pineapple32 } from "./palettes";
 import {
   createEntity, updateEntity, Entity, sfx as sfx,
-  KindOf, removeEntity, updateAll, exploreItemsNearby, decayAspects, createDiv, dreaming,
+  KindOf, removeEntity, updateAll, exploreItemsNearby, decayAspectsMaybe, createDiv, dreaming,
   shapeAndColor,
-  XY
+  XY,
+  chars
 } from "./entity";
 import { AspectSprites, BodySprites, GloveShape, LegShape } from "./graphics";
-import { array, japaneseName, randomElement, rng, weightedRandomOKey } from "./util";
+import { array, japaneseName, randomElement, rng, sum, weightedRandomOKey } from "./util";
 import { Aspects, Items, Materials } from "./data";
 import { roomHeight, cols, roomWidth, roomDepth, roomsNum } from "./consts";
 import { redrawRooms, Room } from "./room";
+import { aspectsSum, inferLevel, levelTo, TAspects } from "./aspects";
 
 declare var img: HTMLImageElement, FPS: HTMLDivElement, Scene: HTMLDivElement;
 
@@ -57,7 +59,7 @@ export let
 
 export let catSprite: HTMLCanvasElement;
 
-export let cat: Entity, dog: Entity, phantom: Entity, pointer: Entity, current: Entity, entities: { [id: number]: Entity } = {};
+export let cat: Entity, dog: Entity, phantom: Entity, pointer: Entity, current: Entity, entitiesById: { [id: number]: Entity } = {};
 
 onload = () => {
   DROP: console.log(123);
@@ -92,13 +94,14 @@ function init() {
       shape: 0x12,
       colors: "nm",
       type: "Cat",
-      name: japaneseName(),
-      chest: sfx(BodySprites + 2, "lk"),
-      pos: [320, 10, roomHeight]
+      name: "Miu",
+      chest: createEntity({...ItemTemplate, type:"Shirt", material:"Iron"}),
+      pos: [320, 10, roomHeight],
+      tip: "This is you."
     });
 
 
-  dog = createEntity(
+  /*dog = createEntity(
     {
       ...PersonTemplate,
       level: 1,
@@ -108,31 +111,20 @@ function init() {
       type: "Dog",
       name: japaneseName(),
       chest: sfx(BodySprites + 1, "ba"),
-      pos: [340, 10, roomHeight]
-    });
+      pos: [340, 10, roomHeight],
+      tip: "A person, that you have pulled out of the dream."
+    });*/
 
-  createEntity({ ...ItemTemplate, type: "Brush", pos: [50, 10, roomHeight] })
-  createEntity({ ...ItemTemplate, type: "Brush", pos: [60, 10, roomHeight] })
+  //createEntity({ ...ItemTemplate, type: "Brush", pos: [350, 10, roomHeight] })
+  //createEntity({ ...ItemTemplate, type: "Brush", pos: [360, 10, roomHeight] })
 
-  rooms[1].open = true;
- 
+  createEntity({ ...ItemTemplate, type: "Bed", material: "Wooden", pos: [384, 32, roomHeight] })
+
   phantom = createEntity({ ...SfxTemplate, opacity: 0.5, shape: 1, colors: "ab", pos: [0, 0, 0], noclick: true });
 
   phantom.canvas.classList.add("phantom");
 
-  for (let i = 0; i < 30; i++) {
-    let type = weightedRandomOKey(Items, it => it.chance);
-
-    createEntity({
-      ...ItemTemplate,
-      type,
-      pos: [
-        rng(cols) * roomWidth + 10 + rng(roomWidth - 20),
-        rng(roomDepth),
-        roomHeight]
-    })
-  }
-
+  //rooms[1].addItems(30);
 
   pointer = createEntity({ ...SfxTemplate, shape: 0x8, colors: "ab", pos: [8, 0, 4], className: "pointer" })
 
@@ -148,33 +140,39 @@ function init() {
   if (DEBUG)
     initDebug()
 
+  rooms[1].addItems(30);
 }
 
 let lastt = 0, fps = 0, cumulative = 0;
 
+export let totalAspects: TAspects
+
+function perSecond() {
+  chars().forEach(decayAspectsMaybe);
+}
+
 function loop(t) {
   let dt = Math.min(1000, t - lastt || 1);
+  totalAspects = chars().reduce((p, c) => aspectsSum(p, c.aspects), {} as TAspects);
 
   if (~~((cumulative + dt) / 1000) > ~~((cumulative) / 1000)) {
-    console.log("tic");
+    perSecond()
   };
-  cumulative+=dt;
+
+  cumulative += dt;
 
   lastt = t;
   let tn = Date.now();
   fps = fps * .9 + (1000 / dt) * .1;
   FPS.innerText = `FPS: ${~~fps}`;
-  Object.values(entities).forEach(s => {
+  Object.values(entitiesById).forEach(s => {
     if (s.actionsQueue.length || s.animation)
       updateEntity(s)
     if (s.deadAt && tn > s.deadAt) {
       removeEntity(s);
     }
     if (s.kind == KindOf.Person) {
-      let dream = dreaming(s);
-      if (dream) {
-      } else if (dt > rng() * 3000) {
-        decayAspects(s);
+      if (!dreaming(s) && dt > rng() * 3000) {
         exploreItemsNearby(s);
       }
     }
@@ -193,6 +191,8 @@ function loop(t) {
     })
 
   })
+
+  rooms.forEach(r => { if (r.dur) r.dur += dt })
   requestAnimationFrame(loop)
   if (!current?.held)
     phantom.div.style.opacity = '0';

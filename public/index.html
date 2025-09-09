@@ -16,6 +16,12 @@
     opacity: 0.3;
   }
 
+  .stats{
+    display: grid;
+    white-space: nowrap;
+    grid-template-columns: auto auto auto auto;
+  }
+
   canvas,
   .entity {
     padding: 0;
@@ -176,7 +182,7 @@
 
   .aspect canvas {
     padding-right: 10px;
-    transform: scale(2);
+    transform: scale(2) translateY(4px);
     transform-origin: 50% 80%;
   }
 
@@ -265,6 +271,11 @@
   .dn {
     display: none;
   }
+  
+  i {
+    font-size: 80%;
+    opacity: 70%;
+  }
 
   #Info {
     position: fixed;
@@ -276,6 +287,12 @@
     border-right: solid 1px #fff4;
     border-top: solid 1px #fff4;
     padding: 0px 20px 20px 20px;
+    width: 300px;
+  }
+  .foo{
+    font-size: 10px;
+    white-space: nowrap;
+    transform: translateX(30px);
   }
 </style>
 

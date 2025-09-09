@@ -26,9 +26,13 @@ export function prepareScene() {
   })
 
   floors = array(rows + 1, i =>
-    setCanvasSize(element(`f${i}`, 'floor', { top: `${++i * roomHeight}px` }),
+    setCanvasSize(element(`f${i-1}`, 'floor', { top: `${i * roomHeight}px` }),
       roomWidth * cols, roomDepth, 2)
   )
+
+  let ceil = floors.shift() as HTMLCanvasElement;
+  fillWithPattern(ceil, createPattern(solid("87",2)))
+  ceil.style.pointerEvents = "none";
 
   curtains = array(roomsNum, i =>
     setCanvasSize(element(`c${i}`, 'curtain', 

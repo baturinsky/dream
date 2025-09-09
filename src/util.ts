@@ -122,7 +122,9 @@ export function colorsStyle(colors: string) {
 }
 
 export function array<T>(length: number, f: (index: number) => T = a=>a as T) {
-  return [...new Array(Math.max(length,0))].map((_, i) => f(i))
+  return [...new Array(~~Math.max(length,0))].map((_, i) => f(i))
 }
 
 export let delay = (dur: number) => new Promise(done => setTimeout(done, dur))
+
+export let fixed = (n)=>n&&n.toFixed(2).replace(/(.00)/g, "")

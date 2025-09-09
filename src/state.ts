@@ -1,8 +1,15 @@
 import { lastSpriteId, setLastSpriteId } from "./consts";
 import { createEntity, Entity, holdEntity, KindOf, removeEntity } from "./entity";
-import { current, entities, rooms, selectPerson, Templates } from "./main";
+import { current, entitiesById, rooms, selectPerson, Templates } from "./main";
+import { redrawRooms } from "./room";
 
 const savedEntityFieldNames = 'id,name,kind,pos,scale,right,shape,colors,aspects,dream,type,material,recent,level,combat,hrz';
+
+export let openRoom = 1;
+
+export function unlockNextRoom(){
+  openRoom++;  
+}
 
 export function saveEntity(e) {
   return e && { ...savedFields(e, savedEntityFieldNames), chest: saveEntity(e.chest), held: saveEntity(e.held) }
@@ -30,22 +37,25 @@ export function saveAll() {
   return {
     cur: current.id,
     lid: lastSpriteId,
-    rooms: rooms.map(r=>savedFields(r,'start,dream,aspects,level,open,stage')),
-    all: Object.values(entities).filter(e => !e.parent && e.kind != KindOf.SFX).map(e => saveEntity(e))
+    openRoom,
+    rooms: rooms.map(r=>savedFields(r,'start,dream,aspects,level,stage,dur,drst')),
+    all: Object.values(entitiesById).filter(e => !e.parent && e.kind != KindOf.SFX).map(e => saveEntity(e))
   }
 }
 
-export function loadAll(save: { cur: number, lid: number, all: Entity[], rooms }) {
+export function loadAll(save: { cur: number, lid: number, all: Entity[], rooms, openRoom:number }) {
   console.log(save);
-  Object.values(entities).forEach(e => removeEntity(e))
+  Object.values(entitiesById).forEach(e => removeEntity(e))
   save.all.forEach(e => loadEntity(e))
-  selectPerson(entities[save.cur]);
+  selectPerson(entitiesById[save.cur]);
   setLastSpriteId(save.lid);
-  save.rooms.forEach((v,i)=>Object.assign(rooms[i], v));
+  openRoom = save.openRoom;
+  save.rooms.forEach((v,i)=>{Object.assign(rooms[i], v)});
+  redrawRooms()
   for (let room of rooms) {
     if (room.dream) {
       room.toggleDream(true)
-      room.continueCombat()
+      room.fight()
     }
   }
 }

@@ -1,4 +1,4 @@
-import { current, entities, phantom, selectPerson } from "./main";
+import { current, entitiesById, phantom, selectPerson } from "./main";
 import { dropHeldEntity, holdEntity, updateEntity, XY, XYZ, walkAnimation, Entity, simpleCopy, updateCanvas, parentPos, absolutePos, finalParent, KindOf, screenSize, info, setActions, waitAnimation, inDream, useItem } from "./entity";
 import { sum } from "./util";
 import { roomHeight, roomsNum } from "./consts";
@@ -40,7 +40,7 @@ export function initControls() {
     let actions;
 
     if (current && fl == "f" && !e.shiftKey) {
-      if (roomAt(to).dream) {
+      if (roomAt(to)?.dream) {
         roomAt(to).wake()
       }
       if (e.button == 2 || (e.button == 0 && !current.held))
@@ -52,7 +52,7 @@ export function initControls() {
     }
 
     if (current && fl == "s" && !e.shiftKey) {
-      let te = entities[v];
+      let te = entitiesById[v];
       if (te && te != current) {
         if (inDream(te)) {
           roomOf(te).wake();
@@ -86,20 +86,14 @@ export function initControls() {
       setActions(current, [...actions, () => waitAnimation(5000)]);
     }
 
-    oncontextmenu = e => {
-      if (!e.shiftKey)
-        e.preventDefault()
-    }
-
-    let t = e.target as HTMLElement;
-
-    if (t.classList.contains("sprite")) {
-      //debugger
-    }
-
   }
 
-  onmousemove = e => {
+  oncontextmenu = e => {
+    if (!e.shiftKey)
+      e.preventDefault()
+  }
+
+  onpointermove = e => {
     if (mpress[1]) {
       let mul = .5;
       sp = sum(sp, [e.movementX, e.movementY], mul);
@@ -108,19 +102,24 @@ export function initControls() {
 
     let [x, y, fl, v] = mouseTarget(e);
     let to = [x, y, (v + 1) * roomHeight] as XYZ;
-    let lastPicked = current?.held
-    let te = entities[v];
-    updateInfo(te)
+    let te = entitiesById[v];
+
+    if (fl == "s") {
+      updateInfo(te)
+    } else {
+      updateInfo(current)
+    }
 
     //Scene.style.setProperty("--hl", `s${te?.id}`)
 
-    if (lastPicked) {
+    let heldByCurrent = current?.held;
+    if (heldByCurrent) {
       if (fl == "f")
-        showPhantom(lastPicked, to);
+        showPhantom(heldByCurrent, to);
       if (fl == "s") {
         if (te && te.kind == KindOf.Item) {
           let pos = sum(te.pos, [0, 0, -screenSize(te)[1] * .7]) as XYZ;
-          showPhantom(lastPicked, pos);
+          showPhantom(heldByCurrent, pos);
           te.div.parentElement?.appendChild(phantom.div);
         }
       }
@@ -143,13 +142,19 @@ export function itemOrPerson(e: Entity) {
   return e.kind == KindOf.Item || e.kind == KindOf.Person
 }
 
+export let details = true;
+
+//Info.onmouseover = () => {details = true; updateInfo(infoShownFor)}
+//Info.onmouseleave = () => {details = false; updateInfo(infoShownFor)}
+
+
 export function updateInfo(e?: Entity) {
 
   let inf = info(e) || info(current);
 
   infoShownFor = e || current;
 
-  Info.innerHTML = inf ? `<h1>${inf[0]}</h1>${inf[1]}` : ''
+  Info.innerHTML = inf ?? ''
 }
 
 export function rezoom() {
