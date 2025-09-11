@@ -1,20 +1,20 @@
 import { initControls, rezoom, updateCam, updateInfo } from "./controls";
 import { initDebug } from "./debug";
 import { prepareScene } from "./init";
-import { convertedPineapple32, convertPalette, parsePalette, pineapple32 } from "./palettes";
+import { convertedPineapple32, parsePalette } from "./palettes";
 import {
-  createEntity, updateEntity, Entity, sfx as sfx,
+  createEntity, updateEntity, Entity, 
   KindOf, removeEntity, updateAll, exploreItemsNearby, decayAspectsMaybe, createDiv, dreaming,
   shapeAndColor,
   XY,
   chars
 } from "./entity";
-import { AspectSprites, BodySprites, GloveShape, LegShape } from "./graphics";
-import { array, japaneseName, randomElement, rng, sum, weightedRandomOKey } from "./util";
-import { Aspects, Items, Materials } from "./data";
-import { roomHeight, cols, roomWidth, roomDepth, roomsNum } from "./consts";
+import { AspectSprites, GloveShape, LegShape } from "./graphics";
+import { array, rng } from "./util";
+import { Aspects } from "./data";
+import { roomHeight, roomsNum } from "./consts";
 import { redrawRooms, Room } from "./room";
-import { aspectsSum, inferLevel, levelTo, TAspects } from "./aspects";
+import { aspectsSum, TAspects } from "./aspects";
 
 declare var img: HTMLImageElement, FPS: HTMLDivElement, Scene: HTMLDivElement;
 
@@ -75,6 +75,7 @@ export function selectPerson(e?: Entity) {
     updateAll(current);
     current.div.appendChild(pointer.div);
   }
+  updateInfo(e)
 }
 
 export let rooms: Room[] = []
@@ -132,7 +133,7 @@ function init() {
 
   redrawRooms();
 
-  loop(0)
+  setInterval(loop, 15);
 
   updateInfo()
 
@@ -140,23 +141,21 @@ function init() {
   if (DEBUG)
     initDebug()
 
-  rooms[1].addItems(30);
+  //rooms[1].addItems(30);
 }
 
 let lastt = 0, fps = 0, cumulative = 0;
 
 export let totalAspects: TAspects
 
-function perSecond() {
-  chars().forEach(decayAspectsMaybe);
-}
 
-function loop(t) {
+function loop() {
+  let t = Date.now();
   let dt = Math.min(1000, t - lastt || 1);
   totalAspects = chars().reduce((p, c) => aspectsSum(p, c.aspects), {} as TAspects);
 
   if (~~((cumulative + dt) / 1000) > ~~((cumulative) / 1000)) {
-    perSecond()
+    chars().forEach(decayAspectsMaybe);
   };
 
   cumulative += dt;
@@ -177,23 +176,9 @@ function loop(t) {
       }
     }
 
-    document.querySelectorAll('.aspect').forEach(el => {
-      let a = Aspects[(el as any)?.dataset?.aspect];
-      if (!a)
-        return;
-      delete (el as any)?.dataset?.aspect;
-      let c = createDiv({
-        ...SfxTemplate,
-        shape: AspectSprites + a.ind,
-        colors: a.colors
-      })
-      el.prepend(c);
-    })
-
   })
 
   rooms.forEach(r => { if (r.dur) r.dur += dt })
-  requestAnimationFrame(loop)
   if (!current?.held)
     phantom.div.style.opacity = '0';
 }

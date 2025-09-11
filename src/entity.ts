@@ -2,12 +2,12 @@ import { aspectsToString, aspectsSum, inferLevel, aspectsMul, improve, levelTo }
 import { nextSpriteId } from "./consts";
 import { details, groundPos, infoShownFor, itemOrPerson, updateInfo } from "./controls";
 import { Aspects, Items, Materials, Races, tips, TItem, TRace, TRaceOrItem, Types } from "./data";
-import { CombatStats, cooldown, damageOrHeal, maxhp } from "./dream";
+import { addLog, applyHpEffect, CombatStats, cooldown, damageOrHeal, maxhp } from "./dream";
 import { spriteCanvas, recolor, gcx, GloveShape, LegShape, outl, AspectSprites, positionDiv } from "./graphics";
 import { entitiesById, current, SfxTemplate, totalAspects, selectPerson } from "./main";
 import { redrawRooms, roomAt, roomOf } from "./room";
 import { unlockNextRoom } from "./state";
-import { dist, mul, randomElement, rng, rngRounded, sub, sum, weightedRandom, weightedRandomF, weightedRandomOKey } from "./util";
+import { array, dist, fixed, mul, randomElement, rng, rngRounded, sub, sum, weightedRandom, weightedRandomF, weightedRandomOKey } from "./util";
 
 declare var Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, DEFS: Element;
 
@@ -37,7 +37,7 @@ export enum KindOf {
   SFX = 4
 }
 
-export type Entity = SpriteLayout & Gear & {
+export type Entity = SpriteLayout & {
   /** DO NOT SAVE */
 
   /**Canvas */
@@ -79,10 +79,11 @@ export type Entity = SpriteLayout & Gear & {
 
   /**Dream items -  */
   dream: boolean
+  sleeper: boolean
 
   /**Item type or person species */
   type: string
-  armor: boolean
+  use?: 'armor' | 'base'
 
   material: string
 
@@ -92,6 +93,7 @@ export type Entity = SpriteLayout & Gear & {
   level: number
 
   combat: CombatStats
+  log: string[]
 
   hrz: boolean
 
@@ -165,13 +167,22 @@ export function recoilAnimation(defender: Entity) {
   ]
 }
 
-export function combatActionAnimation(attacker: Entity, defender: Entity, onAction = () => { }) {
+export function combatActionAnimation(actor: Entity, defender: Entity, onAction = () => { }) {
   return [
-    () => walkTo(attacker, defender.combat.pos, { mode: ATTACK }),
-    () => { damageOrHeal(attacker, defender); onAction() },
-    () => walkTo(attacker, attacker.combat.pos, { mode: ATTACK }),
-    () => { attacker.combat.delay = cooldown(attacker); roomOf(attacker).fight() },
+    () => walkTo(actor, actor == defender ? sum(defender.combat.pos, [0, 0, -10]) : defender.combat.pos, { mode: ATTACK }),
+    () => { damageOrHeal(actor, defender); onAction() },
+    () => walkTo(actor, actor.combat.pos, { mode: ATTACK }),
+    () => {
+      actor.combat.delay = cooldown(actor);
+      let eot = effectOverTime(actor) * actor.combat.delay / 1000;
+      eot && applyHpEffect(actor, eot);
+      roomOf(actor).fight();
+    },
   ]
+}
+
+export function effectOverTime(e: Entity) {
+  return aspect(e, 'B') - e.combat.poison
 }
 
 
@@ -321,17 +332,14 @@ export function createEntity(s: Entity & { levelTo?: number }) {
     }
     e.shape ??= [0, 0x10, 0x50, 0, 0][e.kind] + proto.ind;
     e.scale ??= proto.scale;
-    e.armor ??= proto.armor;
+    e.use ??= proto.use;
     e.material ??= rng(2) || !proto.material ? randomMaterial() : proto.material;
   }
 
   e.colors = e.colors || Materials[e.material]?.colors;
 
   e.scale ??= 1;
-
-  if (s.levelTo) {
-    e.aspects = levelTo(e.aspects, (this.level + this.stage) || 10)
-  }
+  e.log = []
 
   updateCanvas(e);
 
@@ -345,6 +353,12 @@ export function createEntity(s: Entity & { levelTo?: number }) {
     for (let meat of [Materials[e.material], Races[e.type], Items[e.type]]) {
       e.aspects = aspectsSum(e.aspects, meat?.aspects)
     }
+
+  if (s.levelTo) {
+    e.aspects = levelTo(e.aspects, s.levelTo)
+  }
+
+  e.level ??= inferLevel(e.aspects);
 
   //console.log(e.aspects);
 
@@ -436,7 +450,7 @@ export function inDream(e: Entity) {
 }
 
 
-export function showEmote(e: Entity, aspect: string) {
+export function showEmote(e: Entity, aspect: string, dir = 1) {
   if (!aspect)
     return;
   //if (e.kind != KindOf.Person)    debugger
@@ -445,7 +459,7 @@ export function showEmote(e: Entity, aspect: string) {
     ...SfxTemplate,
     shape: AspectSprites + a.ind,
     colors: a.colors,
-    pos: sum(e.pos, [0, 0, -30]),
+    pos: sum(e.pos, [0, 0, -30 * dir]),
     className: "thought",
     deadAt: Date.now() + 3000
   })
@@ -456,28 +470,30 @@ export function entityLevel(e: Entity) {
   return e.level ?? inferLevel(e.aspects)
 }
 
+export function title(e: Entity) {
+  if (e.kind == KindOf.Person) {
+    return `${e.name} the ${(e.type || 'X')}`
+  } else {
+    return `${(e.material || '')} ${e.type}`
+  }
+}
+
 export function info(e?: Entity) {
   if (e == "l" as any)
     e = infoShownFor;
   if (!e || e.kind == KindOf.SFX)
     return;
-  let h = '', t = '';
-  if (e.kind == KindOf.Person) {
-    h = `${e.name} the ${(e.type || 'X')}`
-  } else {
-    h = `${(e.material || '')} ${e.type}`
-  }
-  t += `<h1>${h}</h1>`
-  t += `<h4>Level ${entityLevel(e)}</h4>`;
+  let t = '';
+  t += `<h1>${title(e)}</h1>`
+  t += `<h4>Level ${fixed(entityLevel(e))}</h4>`;
 
   if (details)
-    t += `<p>${(e.tip || "")} ${tips[e.type] ?? ''}<i>${!tips[e.type] ? tips[e.kind] ?? '' : ''}</i></p>`;
+    t += `<p>${(e.tip || "")} ${tips[e.type] ?? tips[e.use as any] ?? ''} <i>${!tips[e.type] ? tips[e.kind] ?? '' : ''}</i></p>`;
+
   if (e.type == "Door") {
     let s = "";
     if (e.material == "Obsidian")
-      s = `This door lets one person to escape (use RMB). But they need to have level >= ${roomOf(e).id}. Doing it also unlocks new room. You first character can only use the door in room 0.`
-    else
-      s = `This door no longer leads outside. But it allows moving between rooms (click on the destination to use the door automatically).`
+      s = `This door lets one person escape (use RMB). But they need to have level >= ${roomOf(e).id}. Doing it also unlocks new room. You first character can only use the door in room 0.`
     t += `<p>${s}</p>`
   }
 
@@ -492,13 +508,24 @@ Value after "/" is with equipment bonuses/penalties.</i>`
       t += `<i>Characters can improve their aspects by looking at this item (happens automatically, but in the current room only). 
 The chance of learning something scales with the person's level and item's level, and goes down with the amount of already learned tinhgs.</i>`
     }
-    t += `<p>${aspectsToString(e.aspects, e)}</p>`
+    t += `${aspectsToString(e.aspects, e)}`
   }
+
+  let room = roomOf(e);
+  if (room.dream) {
+    t += room.chars().map(c => `<u style='color:${c.dream ? '#f88' : '#8f8'}' onclick="selp(${c.id})">${title(c)}</u><br\>`).join('');
+  }
+
+  t += e.log.join('') ?? '';
+
+
   return t
 }
 
+window.selp = (id) => selectPerson(entitiesById[id])
+
 export function findNextThingToExplore(char: Entity) {
-  let es = roomOf(char).entities()
+  let es = roomOf(char).entities().filter(e => e.use != 'base');
   let bestInd = weightedRandom(es.map(e => {
     if (e == char)
       return 0;
@@ -516,18 +543,32 @@ export function findNextThingToExplore(char: Entity) {
   return es[bestInd];
 }
 
-export function examine(char: Entity, target: Entity) {
-  let aspect = weightedRandomOKey(target.aspects);
-  let learnedAmount = entityLevel(target) * recencyMultiplier(char, target) * .01;
+export function finalAspects(e: Entity) {
+  return Object.fromEntries(Object.keys(Aspects).map(k => [k, aspect(e, k)]).filter(v => v[1]))
+}
+
+export function examine(char: Entity, target: Entity, ignoreRecency = false) {
+  
+  console.log("examine", char, target);
+
+  let fa = finalAspects(target);
+  let name = weightedRandomOKey(fa);
+  let learnedAmount = aspect(target, name) * (ignoreRecency?1:recencyMultiplier(char, target)) * .01;
   learnedAmount = rngRounded(learnedAmount);
   if (!learnedAmount)
     return;
-  improve(char.aspects, aspect, learnedAmount);
+  improve(char.aspects, name, learnedAmount);
   char.recent.unshift(target.id);
   char.recent.length = 20;
   if (char == infoShownFor)
     updateInfo(char)
-  showEmote(target, aspect);
+  showEmote(target, name);
+  addLog(char, `Learned ${fixed(learnedAmount)} of ${Aspects[name].name} from ${title(target)}`)
+
+  if (target.type == "Clock" && target.parent?.type == "Bed") {
+    let sleeper = roomOf(char).chars().find(e => e.sleeper) || char;
+    roomOf(char).sleep(sleeper, target.parent);
+  }
 }
 
 export function recencyMultiplier(char: Entity, item: Entity) {
@@ -558,7 +599,10 @@ export function decayAspectsMaybe(char: Entity) {
   let aspect = weightedRandomOKey(totalAspects);
   let probability = (chars().length + 3) * inferLevel(char.aspects) / (char.level + 3);
   if (probability > rng(100)) {
-    char.aspects[aspect] = Math.max(0, char.aspects[aspect] - 0.01 * ~~(il - char.level + 1));
+    let loss = 0.01 * ~~(il - char.level + 1)
+    char.aspects[aspect] = Math.max(0, char.aspects[aspect] - loss);
+    addLog(char, `forgot ${fixed(loss)} of ${Aspects[aspect].name}`)
+    showEmote(char, aspect, -1);
   }
 }
 
@@ -578,12 +622,18 @@ export function setActions(e: Entity, a: Function[]) {
 export function aspect(e: Entity, letter: string) {
   let v = e.aspects[letter] || 0;
 
-  if (e.kind == KindOf.Person && !e.held)
-    v *= 1.3
+  if (e.parent && e.parent.use == 'base') {
+    v = Math.min(v * 2, v + (e.parent.aspects[letter] || 0))
+  }
 
-  v += (e.held?.aspects[letter] || 0) * .5;
-  
-  v += (e.chest?.aspects[letter] || 0) * .5;
+  if (e.kind == KindOf.Person) {
+    if (!e.held)
+      v *= 1.3
+
+    v += (e.held?.aspects[letter] || 0) * .5;
+
+    v += (e.chest?.aspects[letter] || 0) * .5;
+  }
 
   return v ?? 0;
 }
@@ -594,7 +644,7 @@ export function setTitle(e: Entity, text: string) {
 }
 
 export function writeHP(e: Entity) {
-  setTitle(e, e.combat?.hp >= 0 ? `${e.combat?.hp}/${maxhp(e)} hp` : '');
+  setTitle(e, e.combat?.hp >= 0 ? `${fixed(e.combat?.hp)}/${maxhp(e)} hp` : '');
 }
 
 export function randomRace() {
@@ -607,7 +657,14 @@ export function randomMaterial() {
 
 
 export function useItem(user: Entity, item: Entity) {
-  if (item.armor) {
+  if (user.held?.type == "Hammer") {
+    array(10, () => {
+      examine(user, item, true)}
+    );
+    removeEntity(item);
+    return
+  }
+  if (item.use == 'armor') {
     user.chest.pos = item.pos;
     registerEntity(user.chest)
     if (item.parent) {
@@ -616,6 +673,7 @@ export function useItem(user: Entity, item: Entity) {
     removeEntity(item)
     user.chest = item;
     updateAll(user);
+    return
   }
   if (item.type == "Door") {
     let ln = roomOf(item).id;
@@ -649,7 +707,8 @@ Also, new room has opened.`)
   }
 
   if (item.type == "Bed") {
-    roomOf(user).sleep(user);
+    roomOf(user).sleep(user, item);
+    return
   }
 }
 
@@ -661,7 +720,6 @@ export function chars() {
 export function entities(dream?: boolean) {
   return Object.values(entitiesById).filter(e => dream === undefined || !e.dream == !dream)
 }
-
 
 export function flyingTextPos(e: Entity) {
   return sum(e.pos, [-5 + rng(10), 0, -35]) as XYZ;

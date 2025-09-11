@@ -1,8 +1,5 @@
 Todo:
-Enemy generation
-Dream aspects/level generation
-Dream items generation
-Dream scenery generation
+Essense
 
 Done:
 Floor change
@@ -10,3 +7,10 @@ Item picking/placing
 Char switch
 Exploring
 Talking
+Enemy generation
+Dream aspects/level generation
+Dream items generation
+Dream scenery generation
+Clock
+Pedestal
+Book

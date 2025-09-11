@@ -24,34 +24,39 @@ export function aspectsMul(a: TAspects, m: number) {
   return aspectsSum({}, a, m);
 }
 
-export function aspectsToString(a: TAspects, e?:Entity) {
-  let s = "<div class=stats>";  
+export function aspectsToString(a: TAspects, e?: Entity) {
+  let s = '';
   for (let k of Object.keys(Aspects)) {
-    let base = a[k]||0, final = e?aspect(e,k):base;
+    let base = a[k] || 0, final = e ? aspect(e, k) : base;
     if (final) {
       s += `<div class="aspect" data-aspect=${k}></div>
-      <div class=num>${fixed(base)} ${final!=base?`<i>/${fixed(final)}</i>`:''}</div>
+      <div class=num>${fixed(base)} ${final != base ? `<i>/${fixed(final)}</i>` : ''}</div>
       <div> ${Aspects[k].name}</div><div> <i>${Aspects[k].tip}</i></div>`
     }
     //s += `<div style="${colorsStyle(Aspects[k].colors)}">${a[k].toFixed(2).replace(/(.00)/g,"")} ${Aspects[k].name}</div>`
   }
-  return "</div>" + s
+  return `<p><div class=stats>${s}</div></p>`
 }
 
 export function inferLevel(a: TAspects) {
-  return listSum(Object.values(a))
+  return listSum(Object.values(a)) as number
 }
 
 export function improve(a: TAspects, name: string, value: number) {
   a[name] = (a[name] || 0) + value;
 }
 
-export function levelTo(aspects: TAspects, level: number, step=1) {
+export function levelTo(aspects: TAspects, level: number, step = 1) {
   let il = inferLevel(aspects);
-  let b = {...aspects};
-  array((level-il)/step).forEach(e=>{
-    let c = rng(4)?weightedRandomOKey(b):randomElement(Object.keys(Aspects));
-    improve(b, c, step)
-  })
+  let b = { ...aspects };
+  
+  for (let i = il; i < level; i += step) {
+    if (rng(Object.keys(aspects).length + 1)) {
+      improve(b, weightedRandomOKey(b), step)
+    } else {
+      improve(b, weightedRandomOKey(b), 1)
+      i += 1;
+    }
+  }
   return b;
 }

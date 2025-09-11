@@ -44,7 +44,7 @@ Paper:kl:K:5
 Glass:wr:L:5
 Obsidian:no:D:2
 Copper:ef:T:5
-Silver:lx:P:3
+Silver:lx:PM:3
 Asbestos:kb:V:1
 Abstract:::1`.split("\n").map(line => {
     let [name, colors, aspects, chance] = line.split(":")
@@ -61,7 +61,7 @@ export type TItem = {
   type: string,
   placeh: number,
   hrz: boolean
-  armor: boolean
+  use?: 'armor'
 };
 
 export const ArmorsStartAt = 23
@@ -72,17 +72,17 @@ Bed:2:H:Wooden:10:.5:
 Column:3:R:Stone:0:1:
 Apple:1:B:Plant:10:1:
 Chair:1.5:H:Wooden:10:1:
-Chest:1:G:Wooden:10:1:
-Shelf:2:G:Wooden:0:1:
-Stand:2::Stone:0:1:
+Chest:1:G:Wooden:10:1:base
+Shelf:2:G:Wooden:0:1:base
+Stand:2:S:Stone:0:1:base
 Display:2::Glass:0:1:
-Plaque:2::Iron:0:1:
-Big Table:2:R:Stone:0:1:
-Display:2::Glass:0:1:
+Plaque:2:R:Iron:0:1:base
+Big Table:2:R:Stone:0:1:base
+Display:2::Glass:0:1:base
 Dial:2::Glass:0:1:
-Table:2::Wooden:10:.5:
-Clock:1:T:Golden:1:1:
-Pedestal:1::Wooden::1:
+Table:2::Wooden:10:.5:base
+Clock:1:T:Golden:10:1:
+Pedestal:1::Wooden::1:base
 Mirror:2::Glass:5:1:
 Angel:2:P:Silver:3:1:
 Press:2::Iron:0:1:
@@ -90,12 +90,18 @@ Brush:1:::0:1:
 Wine:1:A:Plant:5:1:
 
 
-Shirt:1:T::1
-Robe:1:M::1
-Chain:1:S::1
-Plate:1:R::1`.split("\n").map((line, ind) => {
-    let [type, scale, aspects, material, chance, placeh] = line.split(":");
-    return [type, { armor:ind>=ArmorsStartAt, type, scale, aspects: aspectsFromString(aspects), material, chance: chance ?? 0, ind, placeh }]
+Shirt:1:T:Cloth:5::armor
+Robe:1:M:Paper:5::armor
+Chain:1:S:Iron:5::armor
+Plate:1:R:Iron:5::armor
+Sword:1:S:Iron:5
+Axe:1:T:Iron:5
+Hammer:1:S:Stone:5
+Spear:1:R:Wooden:5
+Wand:1:M:Silver:5
+`.split("\n").map((line, ind) => {
+    let [type, scale, aspects, material, chance, placeh, use] = line.split(":");
+    return [type, { use, type, scale, aspects: aspectsFromString(aspects), material, chance: chance ?? 0, ind, placeh }]
   }))) as { [id: string]: TItem };
 
 console.log(Items);
@@ -135,6 +141,10 @@ export const Types = { ...Races, ...Items } as { [id: string]: TRaceOrItem }
 export const tips = {
   1: `LMB to switch current character, walk around and pick/place items. RMB to use items (such as Bed).`,
   2: "An item that you have found in the dream. Looking at it (happens automatically when awake) can help to remember something about reality (i.e. raise aspects).",
-  Bed: "RMB to sleep. You can increase your level and find some items in dreams. What you find in the dream is affected by the room number and the aspects of the bed and the dreamer.",
-  Brush: "Can recolor items"
+  Bed: "RMB to sleep. You can increase your level and find some items in dreams. What you find in the dream is affected by the room number and the aspects of the bed and the dreamer. RMB on room to wake.",
+  Brush: "Can recolor items.",
+  Clock: "Put this item on the bed to sleep automatically.",
+  Hammer: "For the deep analysis (RMB with it in hand on some disposable item).",
+  armor: "RMB to wear - give bonuses.",
+  base: "Can't be examined by itself, gives bonuses to item on it."
 }

@@ -1,10 +1,13 @@
-import { current, entitiesById, phantom, selectPerson } from "./main";
-import { dropHeldEntity, holdEntity, updateEntity, XY, XYZ, walkAnimation, Entity, simpleCopy, updateCanvas, parentPos, absolutePos, finalParent, KindOf, screenSize, info, setActions, waitAnimation, inDream, useItem } from "./entity";
+import { current, entitiesById, phantom, selectPerson, SfxTemplate } from "./main";
+import { dropHeldEntity, holdEntity, updateEntity, XY, XYZ, walkAnimation, Entity, simpleCopy, updateCanvas, parentPos, absolutePos, finalParent, KindOf, screenSize, info, setActions, waitAnimation, inDream, useItem, createDiv } from "./entity";
 import { sum } from "./util";
 import { roomHeight, roomsNum } from "./consts";
 import { roomAt, roomOf } from "./room";
+import { toggleSavesMenu as toggleSavesMenu } from "./state";
+import { Aspects } from "./data";
+import { AspectSprites } from "./graphics";
 
-declare var Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, Back: HTMLCanvasElement, DEFS: Element, Menu: HTMLDivElement, Info: HTMLDivElement;
+declare var Saves: HTMLDivElement, Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, Back: HTMLCanvasElement, DEFS: Element, Menu: HTMLDivElement, Info: HTMLDivElement;
 
 export let mpress: boolean[] = [], sp = [-380, 20], zoom = 600;
 
@@ -26,6 +29,13 @@ export function updateCam() {
 }
 
 export function initControls() {
+
+  onkeydown = e => {
+    if (e.key == "Escape") {
+      toggleSavesMenu();
+    }
+  }
+
   onpointerup = e => {
     mpress[e.button] = false;
   }
@@ -39,19 +49,25 @@ export function initControls() {
 
     let actions;
 
-    if (current && fl == "f" && !e.shiftKey) {
-      if (roomAt(to)?.dream) {
-        roomAt(to).wake()
-      }
+    if (roomAt(to)?.dream && e.button == 2) {
+       roomAt(to).wake()    
+    }
+
+    if (current && !current.dream && fl == "f" && !e.shiftKey) {
       if (e.button == 2 || (e.button == 0 && !current.held))
         actions = walkAnimation(current, to);
       if (e.button == 0 && current.held) {
         actions = [...walkAnimation(current, to), () => dropHeldEntity(current)];
       }
-
     }
 
-    if (current && fl == "s" && !e.shiftKey) {
+    if (fl == "s" && !e.shiftKey) {
+      let te = entitiesById[v];
+      if(te.kind == KindOf.Person)
+        selectPerson(te);
+    }
+
+    if (current && !current.dream && fl == "s" && !e.shiftKey) {
       let te = entitiesById[v];
       if (te && te != current) {
         if (inDream(te)) {
@@ -155,6 +171,20 @@ export function updateInfo(e?: Entity) {
   infoShownFor = e || current;
 
   Info.innerHTML = inf ?? ''
+
+  requestAnimationFrame(() =>
+    document.querySelectorAll('.aspect').forEach(el => {
+      let a = Aspects[(el as any)?.dataset?.aspect];
+      if (!a)
+        return;
+      delete (el as any)?.dataset?.aspect;
+      let c = createDiv({
+        ...SfxTemplate,
+        shape: AspectSprites + a.ind,
+        colors: a.colors
+      })
+      el.prepend(c);
+    }))
 }
 
 export function rezoom() {

@@ -1,14 +1,16 @@
-import { lastSpriteId, setLastSpriteId } from "./consts";
+import { lastSpriteId, saveName, setLastSpriteId } from "./consts";
 import { createEntity, Entity, holdEntity, KindOf, removeEntity } from "./entity";
 import { current, entitiesById, rooms, selectPerson, Templates } from "./main";
 import { redrawRooms } from "./room";
+import { array } from "./util";
 
-const savedEntityFieldNames = 'id,name,kind,pos,scale,right,shape,colors,aspects,dream,type,material,recent,level,combat,hrz';
+declare var Saves: HTMLDivElement;
+const savedEntityFieldNames = 'id,name,kind,pos,scale,right,shape,colors,aspects,dream,type,material,recent,level,combat,hrz,sleeper,log';
 
 export let openRoom = 1;
 
-export function unlockNextRoom(){
-  openRoom++;  
+export function unlockNextRoom() {
+  openRoom++;
 }
 
 export function saveEntity(e) {
@@ -28,7 +30,7 @@ export function loadEntity(e?: Entity) {
     chest: loadEntity(e.chest)
   });
   //if(r.name)    debugger
-  if(e.held)
+  if (e.held)
     holdEntity(r, loadEntity(e.held), e.held.pos)
   return r;
 }
@@ -38,25 +40,58 @@ export function saveAll() {
     cur: current.id,
     lid: lastSpriteId,
     openRoom,
-    rooms: rooms.map(r=>savedFields(r,'start,dream,aspects,level,stage,dur,drst')),
+    date: Date.now(),
+    rooms: rooms.map(r => savedFields(r, 'start,dream,aspects,level,stage,dur,drst')),
     all: Object.values(entitiesById).filter(e => !e.parent && e.kind != KindOf.SFX).map(e => saveEntity(e))
   }
 }
 
-export function loadAll(save: { cur: number, lid: number, all: Entity[], rooms, openRoom:number }) {
+export function loadAll(save: { cur: number, lid: number, all: Entity[], rooms, openRoom: number }) {
   console.log(save);
   Object.values(entitiesById).forEach(e => removeEntity(e))
   save.all.forEach(e => loadEntity(e))
   selectPerson(entitiesById[save.cur]);
   setLastSpriteId(save.lid);
   openRoom = save.openRoom;
-  save.rooms.forEach((v,i)=>{Object.assign(rooms[i], v)});
+  save.rooms.forEach((v, i) => { Object.assign(rooms[i], v) });
   redrawRooms()
   for (let room of rooms) {
     if (room.dream) {
-      room.toggleDream(true)
+      room.tdr(true)
       room.fight()
     }
   }
 }
 
+let menu = true;
+
+export function toggleSavesMenu(on?:boolean) {
+  menu = on===undefined?!menu:on;
+  Saves.innerHTML = 'Press ESC to toggle menu'
+  if (!menu) {
+    return
+  }
+  let data = JSON.parse(localStorage.getItem(saveName) || '[]');
+  Saves.innerHTML += `<div class=saves>${array(10, i => {
+    return `<div>
+    ${i ? i : 'auto'}</div><button onclick="save(${i})">Save</button>
+ ${data[i] ? `<button onclick="load(${i})">Load</button><div>${new Date(data[i].date).toUTCString()}</div>` :
+        `<div></div><div></div>`}`
+  }).join('')} 
+ </div>`
+}
+
+toggleSavesMenu(localStorage[saveName])
+
+window.save=(i:number)=>{
+  let data = JSON.parse(localStorage[saveName] || '[]');
+  data[i] = saveAll();
+  localStorage[saveName] = JSON.stringify(data);
+  toggleSavesMenu(false)
+}
+
+window.load=(i)=>{
+  let data = JSON.parse(localStorage[saveName] || '[]');
+  loadAll(data[i])
+  toggleSavesMenu(false)
+}

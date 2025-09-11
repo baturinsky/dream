@@ -1,5 +1,5 @@
 import { mouseTarget } from "./controls";
-import { palette, current, SfxTemplate } from "./main";
+import { palette, current, SfxTemplate, entitiesById } from "./main";
 import { convertPalette, generatePalette, parsePalette, RGBA, sweetie16 } from "./palettes";
 import { createEntity, updateEntity, parentPos, walkAnimation, sfx, showEmote, setActions, inDream } from "./entity";
 import { Aspects, Items, Materials } from "./data";
@@ -7,7 +7,7 @@ import { AspectSprites, BodySprites, outl } from "./graphics";
 import { loadAll, saveAll } from "./state";
 import { japaneseName, randomElement, RNG, sum, toCSSColor } from "./util";
 import { roomOf } from "./room";
-import { roomHeight } from "./consts";
+import { roomHeight, saveName } from "./consts";
 
 declare var Debug: HTMLDivElement, Preview: HTMLDivElement;
 
@@ -89,14 +89,13 @@ addEventListener("pointerdown", (e: MouseEvent) => {
       curBack = v;
   }
 
-  //console.log(e, curSprite, curFront, curBack);
+  console.log(entitiesById[v]);
 
   Preview.innerHTML = "";
   let p = createDebugSprite();
   Preview.appendChild(p.canvas);
 })
 
-const saveName = "ayhiadream"
 
 let ai = 0;
 
@@ -129,13 +128,13 @@ addEventListener("keydown", e => {
     ai++
   }
 
-  if (e.code == "KeyN") {
+  /*if (e.code == "KeyN") {
     if (inDream(current)) {
       roomOf(current).wake()
     } else {
       roomOf(current).sleep(current)
     }
-  }
+  }*/
 })
 
 export function createDebugSprite() {

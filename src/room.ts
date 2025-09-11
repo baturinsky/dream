@@ -1,6 +1,6 @@
-import { inferLevel, levelTo, TAspects } from "./aspects";
+import { aspectsMul, aspectsSum, inferLevel, levelTo, TAspects } from "./aspects";
 import { roomWidth, roomHeight, roomDepth, cols, rows, roomsNum } from "./consts";
-import { ArmorsStartAt, Items, Materials } from "./data";
+import { ArmorsStartAt, Aspects, Items, Materials } from "./data";
 import { maxhp, cooldown, allies, unharmed, lootSuccess } from "./dream";
 import {
   aspect, combatActionAnimation, createEntity, Entity, KindOf, parentPos,
@@ -104,14 +104,21 @@ export class Room {
 
     RNG(this.id * 99 + (this.dream ? (this.stage + this.drst % 1000) : 0));
 
+    bc.save()
+    bc.translate(this.l, this.t);
+    let fc = gcx(f);
+    fc.save()
+    fc.translate(this.l, 0);
+
+
     if (this.dream) {
       if (this.stage % 2) {
         let bgm1 = randomElement(Object.values(Materials)).colors;
         let bgm2 = randomElement(Object.values(Materials)).colors;
 
         let backPattern = createPattern(solid(bgm1, rng(5) + 1));
-        fillWithPattern(Back, backPattern, [this.l, this.t, w, h])
-        fillWithPattern(f, createPattern(solid(bgm2, rng(3) + 1)))
+        fillWithPattern(Back, backPattern, [0, 0, w, h])
+        fillWithPattern(f, createPattern(solid(bgm2, rng(3) + 1)), [0, 0, w, d])
 
       } else {
 
@@ -123,8 +130,6 @@ export class Room {
         ][rt];
 
         let grass = createPattern(solid(ground[0], ground[1]))
-        bc.save()
-        bc.translate(this.l, this.t);
 
         let stops = [["#00f", "#f80"], ["#88f", "#00f"], ["#008", "#00f"]][rng(3)]
         const gradient = bc.createLinearGradient(0, 0, 0, 100);
@@ -137,23 +142,19 @@ export class Room {
 
         this.drawTrees(rt);
 
-        bc.restore()
-
-        let fc = gcx(f);
-        fc.save()
-        fc.translate(this.l, this.t);
-        fillWithPattern(f, grass, [0, 0, w, h])
+        fillWithPattern(f, grass, [0, 0, w, d])
         let road = scaleCanvas(transp("45", 11), 16);
-        fillWithPattern(f, createPattern(road), [0, 0, w, h], .5)
-        fc.restore()
+        fillWithPattern(f, createPattern(road), [0, 0, w, d], .5)
       }
-
+      
     } else {
 
-      let backPattern = createPattern(solid("2f", rng(3) + 1));
-      fillWithPattern(Back, backPattern, [this.l, this.t, w, h])
-      fillWithPattern(f, createPattern(solid("rq", rng(3) + 1)))
+      fillWithPattern(Back, createPattern(solid("2f", rng(3) + 1)), [0, 0, w, h])
+      fillWithPattern(f, createPattern(solid("rq", rng(3) + 1)), [0, 0, w, d])
     }
+
+    fc.restore()
+    bc.restore()
 
     //* Front */
 
@@ -183,15 +184,14 @@ export class Room {
     return this.id ? this.id * 1 <= openRoom : openRoom >= 13
   }
 
-  removeEnemies() {
-    this.chars(true).forEach(e => removeEntity(e));
-  }
 
-  toggleDream(dream: boolean) {
+  /**toggleDream */
+  tdr(dream: boolean) {
     this.dream = dream;
     this.draw();
 
     for (let e of this.entities()) {
+      e.log = []
       setActions(e, [])
       setTitle(e, "")
       /**All dream items removed on wake, combat data cleared*/
@@ -222,35 +222,47 @@ export class Room {
   async wake() {
     this.blind();
     await delay(400);
-    this.toggleDream(false);
+    this.tdr(false);
     this.stage = 0;
+    window.save(0)
   }
 
 
-  async sleep(dreamer: Entity) {
+  async sleep(dreamer: Entity, bed: Entity) {
+    this.chars().forEach(c => c.sleeper = false);
+    dreamer.sleeper = true;
     this.blind()
     await delay(400);
     this.dur = 0;
     this.drst = Date.now();
-    this.toggleDream(true);
-    this.aspects = dreamer.aspects;
-    this.level = dreamer.level;
-    this.nextEncounter();
+    this.tdr(true);
+    let aspects = aspectsSum(dreamer.aspects, bed.aspects);
+    let il = inferLevel(aspects);
+    aspects = aspectsSum(aspectsMul(aspects, .9 / il), { [Object.keys(Aspects)[this.id]]: .9 })
+    let level = (il + this.id) / 2;
+    aspects = levelTo(aspects, level);
+    this.level = level;
+    this.next();
   }
 
-  nextEncounter() {
-    for (let i = 0; i < ~~(this.stage/3) + 1; i++) {
+  /**next Encounter */
+  next() {
+
+    /** new enemy */
+    for (let i = 0; i < ~~(this.stage / 3) + 1; i++) {
       createEntity(
         {
           ...PersonTemplate,
           levelTo: this.level,
           type: randomRace(),
           name: japaneseName(),
-          chest: createEntity({...ItemTemplate, levelTo:this.level, type:randomElement(Object.keys(Items).slice(ArmorsStartAt))}),
+          chest: createEntity(
+            { ...ItemTemplate, levelTo: this.level, type: randomElement(Object.keys(Items).filter(it => Items[it].use == 'armor')) }),
           pos: this.doorPos(),
           dream: true
         });
     }
+
 
     for (let dream of [true, false]) {
       let cs = this.chars(dream);
@@ -258,7 +270,7 @@ export class Room {
       cs.forEach((e, i) => {
         e.pos = sum(pos, [0, ((i + .5) / cs.length * .7 + .3) * roomDepth, 0]);
         e.right = dream;
-        e.combat = { pos: e.pos, hp: maxhp(e), delay: cooldown(e), aggro: 0 };
+        e.combat = { pos: e.pos, hp: maxhp(e), delay: cooldown(e), aggro: 0, poison: 0 };
         writeHP(e);
         updateAll(e);
       })
@@ -281,10 +293,13 @@ export class Room {
         removeEntity(e);
       }
     })
-    this.removeEnemies()
-    this.chars().forEach(e => { if (e.combat.hp > 0) setActions(e, walkAnimation(e, sum(e.combat.pos, [-100, 0, 0]))) })
+    this.chars(true).forEach(e => removeEntity(e));
+    this.chars().forEach(e => {
+      if (e.combat.hp > 0)
+        setActions(e, walkAnimation(e, sum(e.combat.pos, [-100, 0, 0])))
+    })
     this.blind();
-    this.chars()[0].actionsQueue.push(() => this.nextEncounter())
+    this.chars()[0].actionsQueue.push(() => this.next())
   }
 
   living() {
@@ -309,7 +324,7 @@ export class Room {
 
     //if (!attacker)      return this.endCombat();
 
-    let isHealing = weightedRandom([aspect(attacker, 'S') + attacker.level*.1, aspect(attacker, 'M')]) == 1;
+    let isHealing = weightedRandom([aspect(attacker, 'S') + attacker.level * .1, aspect(attacker, 'M') / 2]) == 1;
 
     let target: Entity | undefined;
 
@@ -353,8 +368,8 @@ export class Room {
         levelTo: (this.level + this.stage) || 10,
         pos: [
           this.col * roomWidth + 10 + rng(roomWidth - 20),
-          rng(roomDepth) * w,
-          (this.row + 1) * roomHeight]          
+          rng(roomDepth - 5) * w + 5,
+          (this.row + 1) * roomHeight]
       })
       e.level = inferLevel(e.aspects);
       e.dream = this.dream;

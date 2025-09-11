@@ -22,6 +22,27 @@
     grid-template-columns: auto auto auto auto;
   }
 
+  u{
+    cursor: pointer;
+  }
+
+  #Saves{
+    position:fixed;
+    right: 10px;    
+    color: #fff;
+    text-align: right;
+  }
+
+  .saves{
+    display: grid;
+    grid-template-columns: auto auto auto auto;
+    gap: 10px;
+  }
+
+  .saves > button{
+    cursor: pointer;
+  }
+
   canvas,
   .entity {
     padding: 0;
@@ -282,13 +303,17 @@
     top: 10px;
     left: 10px;
     color: #fff;
+    width: 300px;
+  }
+
+  #Info, .saves{
+    padding: 0px 20px 20px 20px;
     background: #0003;
     border-radius: 4px;
     border-right: solid 1px #fff4;
     border-top: solid 1px #fff4;
-    padding: 0px 20px 20px 20px;
-    width: 300px;
   }
+
   .foo{
     font-size: 10px;
     white-space: nowrap;
@@ -338,6 +363,8 @@
     <canvas id=Back></canvas>
   </div>
 </div>
+
+<div id=Saves></div>
 
 <div id=Info>
   <h1></h1>

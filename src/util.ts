@@ -2,7 +2,7 @@ import { palette } from "./main";
 import { RGBA } from "./palettes";
 
 export function toCSSColor(rgba: RGBA) {
-  if(!rgba)
+  if (!rgba)
     return
   let [r, g, b, a] = rgba;
   return `rgba(${r * 255},${g * 255},${b * 255},${a})`
@@ -104,10 +104,10 @@ export function numberValues(oo: { [id: string]: any }) {
   return oo
 }
 
-export function rngRounded(v: number, gen = rng) {
-  v = v * 100;
-  v = (v % 1 > gen() ? 1 : 0) + ~~v;
-  return v /= 100;
+export function rngRounded(v: number, step = .01) {
+  v /= step;
+  v = (v - Math.floor(v) > rng() ? 1 : 0) + Math.floor(v);
+  return v *= step;
 }
 
 /*for (let i = 0; i < 30; i++) {
@@ -121,10 +121,10 @@ export function colorsStyle(colors: string) {
   return bg
 }
 
-export function array<T>(length: number, f: (index: number) => T = a=>a as T) {
-  return [...new Array(~~Math.max(length,0))].map((_, i) => f(i))
+export function array<T>(length: number, f: (index: number) => T = a => a as T) {
+  return [...new Array(~~Math.max(length, 0))].map((_, i) => f(i))
 }
 
 export let delay = (dur: number) => new Promise(done => setTimeout(done, dur))
 
-export let fixed = (n)=>n&&n.toFixed(2).replace(/(.00)/g, "")
+export let fixed = (n) => n && n.toFixed(2).replace(/(.00)/g, "")

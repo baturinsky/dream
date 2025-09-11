@@ -1,8 +1,10 @@
-import { setActions, Entity, XYZ, recoilAnimation, aspect, writeHP, chars, flyingTextPos, entities, KindOf } from "./entity";
+import { levelTo } from "./aspects";
+import { infoShownFor, updateInfo } from "./controls";
+import { setActions, Entity, XYZ, recoilAnimation, aspect, writeHP, chars, flyingTextPos, entities, KindOf, title } from "./entity";
 import { flyingText } from "./graphics";
 import { roomOf } from "./room";
 import { openRoom } from "./state";
-import { rng, rngRounded, sum } from "./util";
+import { fixed, rng, rngRounded, sum } from "./util";
 
 
 export type CombatStats = {
@@ -10,6 +12,7 @@ export type CombatStats = {
   hp: number
   delay: number
   aggro: number
+  poison: number
 }
 
 export function maxhp(e: Entity) {
@@ -24,7 +27,7 @@ export function cooldown(e: Entity) {
 export function combatDurationBonus(e: Entity) {
   let r = roomOf(e);
   let mult = 1 + r.dur / 60000;
-  return e.dream ? 0.7 * mult : 1.3 / mult
+  return e.dream ? 0.5 * mult : 1.5 / mult
 }
 
 export function averageDamage(attacker: Entity, target: Entity) {
@@ -40,29 +43,44 @@ export function damageOrHeal(attacker: Entity, target: Entity) {
 
   let avgDamage = averageDamage(attacker, target);
 
-  let hitRoll = true;
+  let success = true;
   if (!heal) {
     let a = rng() * (aspect(attacker, 'L') * 2 + attacker.level) * 2,
       d = rng() * (aspect(target, 'D') * 2 + target.level);
-    hitRoll = a > d;
+    success = a > d;
   }
 
-  let dmg = heal ? - ~~(1 + aspect(attacker, 'M')) : ~~((rng() + .5) * avgDamage);
+  let dhp = heal ? ~~(2 + aspect(attacker, 'M')) : - ~~((rng() + .5) * avgDamage);
 
-  let admg = Math.abs(dmg);
+  if (dhp < 0 && target.dream == attacker.dream)
+    debugger
 
-  if (hitRoll) {
-    target.combat.hp -= dmg;
+  if (dhp > 0 && target.dream != attacker.dream)
+    debugger
+
+  applyHpEffect(target, dhp, success, attacker, heal || !success ? 0 :
+    rngRounded(aspect(attacker, 'V') / (1 + aspect(target, 'P')) * .1, 1))
+}
+
+export function applyHpEffect(target: Entity, dhp: number, success: boolean = true, source?: Entity, poison = 0) {
+  dhp = rngRounded(dhp, 1)
+  let absDhp = Math.abs(dhp);
+
+  if (success) {
+    target.combat.hp += dhp;
     target.combat.hp = Math.min(Math.max(0, target.combat.hp), maxhp(target));
-    attacker.combat.aggro += admg;
+    if(source)
+      source.combat.aggro += absDhp;
   }
 
-  flyingText(
-    hitRoll ? `${admg}` : `miss`,
-    flyingTextPos(target),
-    hitRoll ? (dmg > 0 ? "red" : "grn") : ""
-  );
+  let txt = success ? `${(dhp > 0 ? '+' : '') + fixed(dhp)}` : `miss`, cls = success ? (dhp < 0 ? "red" : "grn") : "";
+  flyingText(txt, flyingTextPos(target), cls);
 
+  let log = `<div class=${cls}>${source ? title(source) : dhp<0?'poison':'regen'} ${txt} ${poison ? fixed(poison) + ' poison' : ''} ${title(target)}</div>`
+  target.combat.poison += poison;
+
+  source && addLog(source, log)
+  addLog(target, log)
   writeHP(target);
 
   let room = roomOf(target);
@@ -73,8 +91,17 @@ export function damageOrHeal(attacker: Entity, target: Entity) {
     if (captureSuccess()) {
       target.dream = false;
       target.level = rngRounded(target.level * .7);
+      target.aspects = levelTo(target.aspects, target.level);
       room.wake();
     }
+  }
+}
+
+export function addLog(e: Entity, t: string) {
+  e.log = e.log.slice(0).slice(-5) ?? [];
+  e.log.push(`<div>${t}</div>`);
+  if (infoShownFor == e) {
+    updateInfo(e);
   }
 }
 
@@ -91,7 +118,8 @@ function captureSuccess() {
 }
 
 export function lootSuccess() {
-  return rng() < 1 / (entities().filter(e => e.kind == KindOf.Item && !e.dream).length ** 2) * openRoom;
+  let chance = 10 / (10 + entities().filter(e => e.kind == KindOf.Item && !e.dream).length) * openRoom
+  return rng() < chance;
 }
 
 
