@@ -1,9 +1,8 @@
 import { levelTo } from "./aspects";
 import { infoShownFor, updateInfo } from "./controls";
-import { setActions, Entity, XYZ, recoilAnimation, aspect, writeHP, chars, flyingTextPos, entities, KindOf, title } from "./entity";
+import { setActions, Entity, XYZ, recoilAnimation, aspect, writeHP, chars, flyingTextPos, entities, KindOf, title, unitLink } from "./entity";
 import { flyingText } from "./graphics";
-import { roomOf } from "./room";
-import { openRoom } from "./state";
+import { Room, roomOf } from "./room";
 import { fixed, rng, rngRounded, sum } from "./util";
 
 
@@ -27,11 +26,12 @@ export function cooldown(e: Entity) {
 export function combatDurationBonus(e: Entity) {
   let r = roomOf(e);
   let mult = 1 + r.dur / 60000;
-  return e.dream ? 0.5 * mult : 1.5 / mult
+  let bonus = e.dream ? 0.5 * mult : 1.5 / mult
+  return bonus
 }
 
 export function averageDamage(attacker: Entity, target: Entity) {
-  return (3 + (aspect(attacker, 'S') + attacker.level * .5) * 3
+  return Math.max(0, 3 + (aspect(attacker, 'S') + attacker.level * .5) * 3
     - aspect(target, 'R') / 2)
     * combatDurationBonus(attacker)
 }
@@ -50,33 +50,40 @@ export function damageOrHeal(attacker: Entity, target: Entity) {
     success = a > d;
   }
 
-  let dhp = heal ? ~~(2 + aspect(attacker, 'M')) : - ~~((rng() + .5) * avgDamage);
+  let dhp = heal ? ~~(1 + aspect(attacker, 'M')) : - ~~((rng() + .5) * avgDamage);
 
-  if (dhp < 0 && target.dream == attacker.dream)
-    debugger
-
-  if (dhp > 0 && target.dream != attacker.dream)
-    debugger
 
   applyHpEffect(target, dhp, success, attacker, heal || !success ? 0 :
-    rngRounded(aspect(attacker, 'V') / (1 + aspect(target, 'P')) * .1, 1))
+    rngRounded(aspect(attacker, 'V') / (1 + aspect(target, 'P')) * .3, 1))
 }
 
 export function applyHpEffect(target: Entity, dhp: number, success: boolean = true, source?: Entity, poison = 0) {
+
   dhp = rngRounded(dhp, 1)
+
+  if (!dhp && !poison)
+    return;
+
   let absDhp = Math.abs(dhp);
 
   if (success) {
     target.combat.hp += dhp;
     target.combat.hp = Math.min(Math.max(0, target.combat.hp), maxhp(target));
-    if(source)
+    if (source)
       source.combat.aggro += absDhp;
   }
+
+  if (dhp > 0 && source && source.dream != target.dream)
+    debugger
+
+  if (dhp < 0 && source && source?.dream == target.dream)
+    debugger
 
   let txt = success ? `${(dhp > 0 ? '+' : '') + fixed(dhp)}` : `miss`, cls = success ? (dhp < 0 ? "red" : "grn") : "";
   flyingText(txt, flyingTextPos(target), cls);
 
-  let log = `<div class=${cls}>${source ? title(source) : dhp<0?'poison':'regen'} ${txt} ${poison ? fixed(poison) + ' poison' : ''} ${title(target)}</div>`
+  let log = `<div>${source ? unitLink(source) : dhp < 0 ? 'poison' : 'regen'} 
+  <span class=${cls}>${txt}</span> ${poison ? fixed(poison) + ' poison' : ''} ${unitLink(target)}</div>`
   target.combat.poison += poison;
 
   source && addLog(source, log)
@@ -88,7 +95,7 @@ export function applyHpEffect(target: Entity, dhp: number, success: boolean = tr
   if (target.combat.hp == 0 && target.dream) {
     room.chars(false).forEach(c => giveXp(c, xpFor(c, target)))
 
-    if (captureSuccess()) {
+    if (captureSuccess(room)) {
       target.dream = false;
       target.level = rngRounded(target.level * .7);
       target.aspects = levelTo(target.aspects, target.level);
@@ -113,12 +120,16 @@ function giveXp(e: Entity, v: number) {
   }
 }
 
-function captureSuccess() {
-  return rng() < .5 / (chars().length ** 2) * openRoom;
+function captureSuccess(room:Room) {
+  let cl = chars().length;
+  return cl == 1 || rng() < .3 / cl * room.greed();
 }
 
-export function lootSuccess() {
-  let chance = 10 / (10 + entities().filter(e => e.kind == KindOf.Item && !e.dream).length) * openRoom
+
+export function lootSuccess(room:Room) {
+  let chance = 7 / (10 + entities().filter(e => e.kind == KindOf.Item && !e.dream).length) * 
+  room.greed()
+  //console.log("ls", chance);
   return rng() < chance;
 }
 
@@ -127,7 +138,7 @@ function xpFor(char: Entity, target: Entity) {
   return Math.max(0, rngRounded(
     (5 + target.level - char.level) /
     (1 + char.level) /
-    (roomOf(char).chars(false).length) * .05
+    (roomOf(char).chars(false).length) * .1
   ));
 }
 

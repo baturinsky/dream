@@ -1,6 +1,8 @@
 import { palette } from "./main";
 import { RGBA } from "./palettes";
 
+declare var Msg: HTMLDivElement;
+
 export function toCSSColor(rgba: RGBA) {
   if (!rgba)
     return
@@ -128,3 +130,9 @@ export function array<T>(length: number, f: (index: number) => T = a => a as T) 
 export let delay = (dur: number) => new Promise(done => setTimeout(done, dur))
 
 export let fixed = (n) => n && n.toFixed(2).replace(/(.00)/g, "")
+
+
+export function myAlert(txt){
+  Msg.innerHTML = `<p>${txt}</p><p><button onclick="Msg.style.display='none'">OK</button></p>`;
+  Msg.style.display = "block";
+}

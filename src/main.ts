@@ -3,18 +3,20 @@ import { initDebug } from "./debug";
 import { prepareScene } from "./init";
 import { convertedPineapple32, parsePalette } from "./palettes";
 import {
-  createEntity, updateEntity, Entity, 
+  createEntity, updateEntity, Entity,
   KindOf, removeEntity, updateAll, exploreItemsNearby, decayAspectsMaybe, createDiv, dreaming,
   shapeAndColor,
   XY,
-  chars
+  chars,
+  holdEntity,
+  setMaterial
 } from "./entity";
 import { AspectSprites, GloveShape, LegShape } from "./graphics";
 import { array, rng } from "./util";
 import { Aspects } from "./data";
 import { roomHeight, roomsNum } from "./consts";
 import { redrawRooms, Room } from "./room";
-import { aspectsSum, TAspects } from "./aspects";
+import { aspectsSum, levelEntityTo, levelTo, TAspects } from "./aspects";
 
 declare var img: HTMLImageElement, FPS: HTMLDivElement, Scene: HTMLDivElement;
 
@@ -50,10 +52,7 @@ export const Templates = [,
   PersonTemplate, ItemTemplate, SceneryTemplate, SfxTemplate
 ] as Entity[];
 
-//console.log(convertPalette(pineapple32));
-
 export let
-  //palette = generatePalette(),
   palette = parsePalette(convertedPineapple32),
   filters = new Set();
 
@@ -62,9 +61,8 @@ export let catSprite: HTMLCanvasElement;
 export let cat: Entity, dog: Entity, phantom: Entity, pointer: Entity, current: Entity, entitiesById: { [id: number]: Entity } = {};
 
 onload = () => {
-  DROP: console.log(123);
   img.onload = init;
-  img.src = '16cols.gif';
+  img.src = 'i.webp';
 }
 
 export function selectPerson(e?: Entity) {
@@ -91,15 +89,18 @@ function init() {
   cat = createEntity(
     {
       ...PersonTemplate,
-      level: 1,
       shape: 0x12,
       colors: "nm",
       type: "Cat",
-      name: "Miu",
-      chest: createEntity({...ItemTemplate, type:"Shirt", material:"Iron"}),
-      pos: [320, 10, roomHeight],
-      tip: "This is you."
+      name: "Мiu",
+      chest: createEntity({ ...ItemTemplate, type: "Chain", material: "Plant" }),
+      pos: [320, 10, roomHeight]
     });
+
+  cat.aspects.B = 1;
+
+
+  //holdEntity(cat, createEntity({ ...ItemTemplate, type: "Cactus", pos:[0,0,0] }))
 
 
   /*dog = createEntity(
@@ -116,12 +117,17 @@ function init() {
       tip: "A person, that you have pulled out of the dream."
     });*/
 
-  //createEntity({ ...ItemTemplate, type: "Brush", pos: [350, 10, roomHeight] })
   //createEntity({ ...ItemTemplate, type: "Brush", pos: [360, 10, roomHeight] })
 
-  createEntity({ ...ItemTemplate, type: "Bed", material: "Wooden", pos: [384, 32, roomHeight] })
-
   phantom = createEntity({ ...SfxTemplate, opacity: 0.5, shape: 1, colors: "ab", pos: [0, 0, 0], noclick: true });
+
+  let items = 
+  ["Bed", "Bed", "Hammer", "Brush", "Shrinker", "Magnifier", "Tome", "Extractor"].map((type,i)=>
+    createEntity({ ...ItemTemplate, type, pos: rooms[i+1].center() })
+  )
+  holdEntity(items[1], createEntity({ ...ItemTemplate, type: "Clock", pos: [0, 0, 0] }))
+
+  //createEntity({ ...ItemTemplate, type:"Robe", pos: rooms[1].center() })
 
   phantom.canvas.classList.add("phantom");
 
@@ -138,8 +144,7 @@ function init() {
   updateInfo()
 
   //@ts-ignore
-  if (DEBUG)
-    initDebug()
+  //if (DEBUG)    initDebug()
 
   //rooms[1].addItems(30);
 }
@@ -155,7 +160,11 @@ function loop() {
   totalAspects = chars().reduce((p, c) => aspectsSum(p, c.aspects), {} as TAspects);
 
   if (~~((cumulative + dt) / 1000) > ~~((cumulative) / 1000)) {
-    chars().forEach(decayAspectsMaybe);
+    chars().forEach(c => {
+      decayAspectsMaybe(c);
+      if (c.sleeper)
+        c.sleeper++;
+    });
   };
 
   cumulative += dt;
@@ -178,7 +187,11 @@ function loop() {
 
   })
 
-  rooms.forEach(r => { if (r.dur) r.dur += dt })
+  rooms.forEach(r => {
+    if(r.dream)
+      r.dur += dt
+  })
+
   if (!current?.held)
     phantom.div.style.opacity = '0';
 }

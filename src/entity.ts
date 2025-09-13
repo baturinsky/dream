@@ -1,13 +1,13 @@
-import { aspectsToString, aspectsSum, inferLevel, aspectsMul, improve, levelTo } from "./aspects";
+import { aspectsToString, aspectsSum, inferLevel, aspectsMul, improve, levelTo, aspectsMulEach } from "./aspects";
 import { nextSpriteId } from "./consts";
 import { details, groundPos, infoShownFor, itemOrPerson, updateInfo } from "./controls";
 import { Aspects, Items, Materials, Races, tips, TItem, TRace, TRaceOrItem, Types } from "./data";
 import { addLog, applyHpEffect, CombatStats, cooldown, damageOrHeal, maxhp } from "./dream";
-import { spriteCanvas, recolor, gcx, GloveShape, LegShape, outl, AspectSprites, positionDiv } from "./graphics";
-import { entitiesById, current, SfxTemplate, totalAspects, selectPerson } from "./main";
+import { spriteCanvas, recolor, gcx, GloveShape, LegShape, outl, AspectSprites, positionDiv, ItemSprites, FaceSprites } from "./graphics";
+import { entitiesById, current, SfxTemplate, totalAspects, selectPerson, ItemTemplate } from "./main";
 import { redrawRooms, roomAt, roomOf } from "./room";
 import { unlockNextRoom } from "./state";
-import { array, dist, fixed, mul, randomElement, rng, rngRounded, sub, sum, weightedRandom, weightedRandomF, weightedRandomOKey } from "./util";
+import { array, dist, fixed, mul, myAlert, randomElement, rng, rngRounded, sub, sum, weightedRandom, weightedRandomF, weightedRandomOKey } from "./util";
 
 declare var Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, DEFS: Element;
 
@@ -79,7 +79,7 @@ export type Entity = SpriteLayout & {
 
   /**Dream items -  */
   dream: boolean
-  sleeper: boolean
+  sleeper: number
 
   /**Item type or person species */
   type: string
@@ -174,8 +174,6 @@ export function combatActionAnimation(actor: Entity, defender: Entity, onAction 
     () => walkTo(actor, actor.combat.pos, { mode: ATTACK }),
     () => {
       actor.combat.delay = cooldown(actor);
-      let eot = effectOverTime(actor) * actor.combat.delay / 1000;
-      eot && applyHpEffect(actor, eot);
       roomOf(actor).fight();
     },
   ]
@@ -209,6 +207,8 @@ export function updateEntity(e: Entity, parentPos?: XYZ) {
     }
   }
 
+  delete e.aspects?.undefined;
+
   if (e.animation && e.animation() == false) {
     delete e.animation;
   }
@@ -227,7 +227,7 @@ export function updateEntity(e: Entity, parentPos?: XYZ) {
   d.classList.add("k" + e.kind)
   d.classList.toggle("right", !!e.right)
 
-  d.style.display = !e.dream && roomOf(e).dream && e.kind != KindOf.Person ? "none" : "block";
+  d.style.display = !e.dream && roomOf(e).dream && e.kind != KindOf.Person && !e.parent ? "none" : "block";
 
   let t =
     (e.right ? lookRight : "") +
@@ -240,7 +240,7 @@ export function updateEntity(e: Entity, parentPos?: XYZ) {
   positionDiv(d, p, t)
 
   if (e.type == "Door")
-    setTitle(e, `<div class='foo'>Room ${roomOf(e).id}</div>`)
+    setTitle(e, `<div class='roomn'>Room ${roomOf(e).id}</div>`)
 
   //let transform = `translateZ(${pos[1]}px)` + (e.right ? lookRight : "") + (e.transform ?? '');
   /*d.style.left = `${p[0]}px`
@@ -330,7 +330,7 @@ export function createEntity(s: Entity & { levelTo?: number }) {
       e.mountPoint ??= [5, 0, 9 - proto.placeh * 8];
       //console.log(proto.placeh, e.mountPoint);
     }
-    e.shape ??= [0, 0x10, 0x50, 0, 0][e.kind] + proto.ind;
+    e.shape ??= [0, FaceSprites, ItemSprites, 0, 0][e.kind] + proto.ind;
     e.scale ??= proto.scale;
     e.use ??= proto.use;
     e.material ??= rng(2) || !proto.material ? randomMaterial() : proto.material;
@@ -367,9 +367,11 @@ export function createEntity(s: Entity & { levelTo?: number }) {
 }
 
 export function registerEntity(e: Entity) {
-  entitiesById[e.id] = e;
-  Scene.appendChild(e.div)
-  updateAll(e);
+  if (!entitiesById[e.id]) {
+    entitiesById[e.id] = e;
+    Scene.appendChild(e.div)
+    updateAll(e);
+  }
 }
 
 
@@ -450,17 +452,18 @@ export function inDream(e: Entity) {
 }
 
 
-export function showEmote(e: Entity, aspect: string, dir = 1) {
+export function showEmote(e: Entity, aspect: string, dir = '') {
   if (!aspect)
     return;
   //if (e.kind != KindOf.Person)    debugger
+  //console.log("thought" + dir);
   let a = Aspects[aspect];
   return createEntity({
     ...SfxTemplate,
     shape: AspectSprites + a.ind,
     colors: a.colors,
-    pos: sum(e.pos, [0, 0, -30 * dir]),
-    className: "thought",
+    pos: sum(e.pos, [0, 0, -20]),
+    className: "thought" + dir,
     deadAt: Date.now() + 3000
   })
 
@@ -501,25 +504,34 @@ export function info(e?: Entity) {
     t += `Aspects. `;
     if (e.kind == KindOf.Person) {
       t +=
-        `<i>Aspects represent this person's memories, personality and knowledge. Affects their performance while dreaming. 
+        `<i>This person's memories, personality and knowledge. Affects their performance while dreaming. 
 Value after "/" is with equipment bonuses/penalties.</i>`
     }
     if (e.kind == KindOf.Item) {
-      t += `<i>Characters can improve their aspects by looking at this item (happens automatically, but in the current room only). 
-The chance of learning something scales with the person's level and item's level, and goes down with the amount of already learned tinhgs.</i>`
+      t += `<i>Characters automatically improve their aspects by looking at this item. 
+The chance of learning something scales with the person's level and item's level.
+The chance goes down, if many people have high value in this aspect.</i>`
     }
     t += `${aspectsToString(e.aspects, e)}`
   }
 
   let room = roomOf(e);
   if (room.dream) {
-    t += room.chars().map(c => `<u style='color:${c.dream ? '#f88' : '#8f8'}' onclick="selp(${c.id})">${title(c)}</u><br\>`).join('');
+    t += `<div class=grid3>` +
+      room.chars().map(c => `<div>${fixed(c.level)}</div><div>${unitLink(c)}</div><div>${hpText(c)} ${c.combat.poison ? c.combat.poison + " poison" : ''}</div>`).join('')
+      + '</div>'
+      ;
   }
 
-  t += e.log.join('') ?? '';
+  if (e.log?.length)
+    t += "<hr/>" + e.log.join('');
 
 
   return t
+}
+
+export function unitLink(c: Entity) {
+  return `<u style='color:${c.dream ? '#f88' : '#8f8'}' onclick="selp(${c.id})">${title(c)}</u>`
 }
 
 window.selp = (id) => selectPerson(entitiesById[id])
@@ -547,27 +559,33 @@ export function finalAspects(e: Entity) {
   return Object.fromEntries(Object.keys(Aspects).map(k => [k, aspect(e, k)]).filter(v => v[1]))
 }
 
-export function examine(char: Entity, target: Entity, ignoreRecency = false) {
-  
-  console.log("examine", char, target);
+export function examine(pupil: Entity, target: Entity, multiplier?: number) {
 
   let fa = finalAspects(target);
   let name = weightedRandomOKey(fa);
-  let learnedAmount = aspect(target, name) * (ignoreRecency?1:recencyMultiplier(char, target)) * .01;
+  multiplier ??= recencyMultiplier(pupil, target);
+  let learnedAmount = aspect(target, name) * multiplier * .01;
   learnedAmount = rngRounded(learnedAmount);
   if (!learnedAmount)
     return;
-  improve(char.aspects, name, learnedAmount);
-  char.recent.unshift(target.id);
-  char.recent.length = 20;
-  if (char == infoShownFor)
-    updateInfo(char)
-  showEmote(target, name);
-  addLog(char, `Learned ${fixed(learnedAmount)} of ${Aspects[name].name} from ${title(target)}`)
+  if (target.type == "Tome") {
+    learnedAmount *= (1 + aspect(pupil, "K") * .1)
+  }
+  improve(pupil.aspects, name, learnedAmount);
+  if (pupil.recent) {
+    pupil.recent.unshift(target.id);
+    pupil.recent.length = 20;
+  }
+  if (pupil == infoShownFor)
+    updateInfo(pupil)
+  showEmote(target, name, 'd');
+  addLog(pupil, `Learned ${fixed(learnedAmount)} of ${Aspects[name].name} from ${title(target)} `)
+  addLog(target, `Taught ${fixed(learnedAmount)} of ${Aspects[name].name} to ${title(pupil)} `)
 
   if (target.type == "Clock" && target.parent?.type == "Bed") {
-    let sleeper = roomOf(char).chars().find(e => e.sleeper) || char;
-    roomOf(char).sleep(sleeper, target.parent);
+    let sleeper = roomOf(pupil).chars().find(e => e.sleeper) || pupil;
+    if (sleeper.sleeper == 0 || sleeper.sleeper > 60)
+      roomOf(pupil).sleep(sleeper, target.parent);
   }
 }
 
@@ -582,6 +600,15 @@ export function recencyMultiplier(char: Entity, item: Entity) {
 export function exploreItemsNearby(char: Entity) {
   if (!idle(char))
     return;
+
+  if (char.held?.type == "Tome") {
+    let tome = char.held;
+    examine(tome, char,
+      (tome.level + aspect(char, "K") - inferLevel(tome.aspects)) * 0.05
+    );
+    return
+  }
+
   let target = findNextThingToExplore(char)
   if (!target)
     return;
@@ -601,8 +628,8 @@ export function decayAspectsMaybe(char: Entity) {
   if (probability > rng(100)) {
     let loss = 0.01 * ~~(il - char.level + 1)
     char.aspects[aspect] = Math.max(0, char.aspects[aspect] - loss);
-    addLog(char, `forgot ${fixed(loss)} of ${Aspects[aspect].name}`)
-    showEmote(char, aspect, -1);
+    addLog(char, `forgot ${fixed(loss)} of ${Aspects[aspect].name} `)
+    showEmote(char, aspect);
   }
 }
 
@@ -643,8 +670,12 @@ export function setTitle(e: Entity, text: string) {
     e.title.innerHTML = text
 }
 
+export function hpText(e: Entity) {
+  return e.combat?.hp >= 0 ? `${fixed(e.combat?.hp)}/${maxhp(e)} hp` : ''
+}
+
 export function writeHP(e: Entity) {
-  setTitle(e, e.combat?.hp >= 0 ? `${fixed(e.combat?.hp)}/${maxhp(e)} hp` : '');
+  setTitle(e, hpText(e));
 }
 
 export function randomRace() {
@@ -657,33 +688,89 @@ export function randomMaterial() {
 
 
 export function useItem(user: Entity, item: Entity) {
-  if (user.held?.type == "Hammer") {
-    array(10, () => {
-      examine(user, item, true)}
-    );
+  let held = user.held;
+  if (held?.type == "Shrinker") {
+    item.scale *= .9;
+    updateAll(item);
+    return
+  }
+  if (held?.type == "Magnifier") {
+    item.scale /= .9;
+    updateAll(item);
+    return
+  }
+  if (held?.type == "Hammer" && item.kind == KindOf.Item) {
+    examine(user, item, 10)
     removeEntity(item);
     return
   }
+  if (held?.type == "Essense") {
+    item.aspects = aspectsSum(item.aspects, held.aspects)
+    item.level = inferLevel(item.aspects);
+    dropHeldEntity(user);
+    removeEntity(held);
+    updateAll(user);
+    return
+  }
+
+  if (held?.type == "Extractor") {
+    let a = weightedRandomOKey(aspectsMulEach(user.aspects, held.aspects));
+    let v = Math.min(aspect(user, a) + held.aspects[a], item.aspects[a])
+    if (v > 0) {
+      createEntity({ ...ItemTemplate, type: "Essense", material: item.material, aspects: { [a]: v }, pos: item.pos });
+      removeEntity(item)
+    } else {
+      addLog(user, "Extract fail.")
+      createEntity({
+        ...SfxTemplate,
+        shape: 0x3a,
+        colors: '32',
+        pos: sum(user.pos, [0, 0, -20]),
+        className: "thought",
+        deadAt: Date.now() + 3000
+      })
+      if (!rng(10))
+        removeEntity(item)
+    }
+  }
   if (item.use == 'armor') {
+
     user.chest.pos = item.pos;
     registerEntity(user.chest)
-    if (item.parent) {
+
+    if (item.parent)
       holdEntity(item.parent, user.chest);
-    }
+
     removeEntity(item)
+    updateAll(user.chest);
+
     user.chest = item;
     updateAll(user);
     return
   }
+  if (held?.type == "Brush") {
+    item.colors = held.colors;
+    updateAll(item)
+    return
+  }
+
+  if (item.type == "Bed") {
+    roomOf(user).sleep(user, item);
+    return
+  }
+
   if (item.type == "Door") {
-    let ln = roomOf(item).id;
+    let ln = item.level;
     if (item.material == "Obsidian") {
       if (user.level < ln) {
-        alert(`Need level ${ln} to use`);
+        myAlert(`Need level ${ln} to use`);
         return;
       }
-      if (user.tip == "This is you.") {
-        alert(`You can't use this door. Maybe you can find someone else who can?`)
+      if (user.name == "Мiu") {
+        if(ln==0)
+          myAlert(`You win. Pretend there is an epic ending sequence here.`)
+        else
+          myAlert(`You can't use this door. Maybe you can find someone else who can?`)
         return
       }
       setMaterial(item, "Wooden");
@@ -692,22 +779,10 @@ export function useItem(user: Entity, item: Entity) {
       selectPerson(chars()[0])
       unlockNextRoom();
       redrawRooms();
-      alert(
+      myAlert(
         `Walking through this door, they have left these rooms for good. 
-Have they went to the real world, or just disappeared? Who knows.
 Also, new room has opened.`)
     }
-    return
-  }
-  let tool = user.held;
-  if (tool?.type == "Brush") {
-    item.colors = tool.colors;
-    updateAll(item)
-    return
-  }
-
-  if (item.type == "Bed") {
-    roomOf(user).sleep(user, item);
     return
   }
 }

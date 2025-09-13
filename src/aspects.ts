@@ -24,6 +24,17 @@ export function aspectsMul(a: TAspects, m: number) {
   return aspectsSum({}, a, m);
 }
 
+export function aspectsMulEach(a: TAspects, b: TAspects) {
+  let r = {};
+  a ??= {};
+  b ??= {};
+  for (let k in { ...a, ...b }) {
+    r[k] = (a[k] || 0) * (b[k] || 0)
+  }
+  return r as TAspects
+}
+
+
 export function aspectsToString(a: TAspects, e?: Entity) {
   let s = '';
   for (let k of Object.keys(Aspects)) {
@@ -49,7 +60,7 @@ export function improve(a: TAspects, name: string, value: number) {
 export function levelTo(aspects: TAspects, level: number, step = 1) {
   let il = inferLevel(aspects);
   let b = { ...aspects };
-  
+
   for (let i = il; i < level; i += step) {
     if (rng(Object.keys(aspects).length + 1)) {
       improve(b, weightedRandomOKey(b), step)
@@ -59,4 +70,13 @@ export function levelTo(aspects: TAspects, level: number, step = 1) {
     }
   }
   return b;
+}
+
+export function levelEntityTo(e: Entity, level: number, step = 1) {
+  levelTo(e.aspects, level, step);
+  return e;
+}
+
+export function aspectShard(a:TAspects, m:number) {
+  return {[weightedRandomOKey(a)]:m*inferLevel(a)}
 }

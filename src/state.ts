@@ -1,5 +1,6 @@
 import { lastSpriteId, saveName, setLastSpriteId } from "./consts";
-import { createEntity, Entity, holdEntity, KindOf, removeEntity } from "./entity";
+import { updateCam } from "./controls";
+import { createEntity, Entity, holdEntity, KindOf, removeEntity, updateAll } from "./entity";
 import { current, entitiesById, rooms, selectPerson, Templates } from "./main";
 import { redrawRooms } from "./room";
 import { array } from "./util";
@@ -7,7 +8,7 @@ import { array } from "./util";
 declare var Saves: HTMLDivElement;
 const savedEntityFieldNames = 'id,name,kind,pos,scale,right,shape,colors,aspects,dream,type,material,recent,level,combat,hrz,sleeper,log';
 
-export let openRoom = 1;
+export let openRoom = 1, sp = [-380, 20];
 
 export function unlockNextRoom() {
   openRoom++;
@@ -39,6 +40,7 @@ export function saveAll() {
   return {
     cur: current.id,
     lid: lastSpriteId,
+    sp,
     openRoom,
     date: Date.now(),
     rooms: rooms.map(r => savedFields(r, 'start,dream,aspects,level,stage,dur,drst')),
@@ -46,12 +48,13 @@ export function saveAll() {
   }
 }
 
-export function loadAll(save: { cur: number, lid: number, all: Entity[], rooms, openRoom: number }) {
-  console.log(save);
+export function loadAll(save: { cur: number, lid: number, all: Entity[], rooms, openRoom: number, sp }) {
   Object.values(entitiesById).forEach(e => removeEntity(e))
   save.all.forEach(e => loadEntity(e))
   selectPerson(entitiesById[save.cur]);
   setLastSpriteId(save.lid);
+  if(save.sp)
+    sp = save.sp;
   openRoom = save.openRoom;
   save.rooms.forEach((v, i) => { Object.assign(rooms[i], v) });
   redrawRooms()
@@ -61,6 +64,7 @@ export function loadAll(save: { cur: number, lid: number, all: Entity[], rooms, 
       room.fight()
     }
   }
+  updateCam();
 }
 
 let menu = true;

@@ -10,12 +10,12 @@ Bloom:Regeneration:ba
 Courage:Cover your allies:21
 Anger:Avenge Damage:uv
 Mercy:Heal Friends:lx
-Knowledge:Writing and Reading:mn
+Knowledge:Reading and writing Tomes:mn
 Light:Strike True:je
 Dark:Evade:o8
 Time:Action Rate:lm
 Purity:Resist Poison:rq
-Venom:Poison:ba`.split("\n").map((line, ind) => {
+Venom:Poison foe:ba`.split("\n").map((line, ind) => {
     let [name, tip, colors] = line.split(":");
     let l = name[0];
     return [l, { l, name, tip, colors, ind }]
@@ -33,7 +33,7 @@ export type TMaterial = {
 
 export const Materials = numberValues(Object.fromEntries(
   `Wooden:67:H:10
-Iron:32:S:10
+Iron:lm:S:10
 Stone:mn:R:10
 Golden:c4:G:2
 Plant:ba:B:5
@@ -49,7 +49,7 @@ Asbestos:kb:V:1
 Abstract:::1`.split("\n").map(line => {
     let [name, colors, aspects, chance] = line.split(":")
     return [name, { colors, aspects: aspectsFromString(aspects), chance }]
-  }))) as {[id:string]:TMaterial}
+  }))) as { [id: string]: TMaterial }
 
 
 export type TItem = {
@@ -67,44 +67,50 @@ export type TItem = {
 export const ArmorsStartAt = 23
 
 export const Items = numberValues(Object.fromEntries(
-  `Door:2:10:Wooden:0:1:
-Bed:2:H:Wooden:10:.5:
+  `Door:2::Wooden:0:1:
+Bed:2:H:Wooden:20:.5:
 Column:3:R:Stone:0:1:
 Apple:1:B:Plant:10:1:
 Chair:1.5:H:Wooden:10:1:
-Chest:1:G:Wooden:10:1:base
-Shelf:2:G:Wooden:0:1:base
-Stand:2:S:Stone:0:1:base
-Display:2::Glass:0:1:
-Plaque:2:R:Iron:0:1:base
-Big Table:2:R:Stone:0:1:base
-Display:2::Glass:0:1:base
-Dial:2::Glass:0:1:
-Table:2::Wooden:10:.5:base
+Chest:1:G:Wooden:10:1:
+Shelf:2:G:Wooden:3:1:
+Stand:2:S:Stone:3:1:base
+Display:2::Glass:3:1:
+Plaque:2:R:Iron:3:1:base
+Big Table:2:R:Stone:3:1:base
+Display:2::Glass:3:1:base
+Trinket:1::Glass:5:1:
+Table:2::Wooden:3:.5:base
 Clock:1:T:Golden:10:1:
-Pedestal:1::Wooden::1:base
+Pedestal:1.5::Wooden:3:1:base
 Mirror:2::Glass:5:1:
-Angel:2:P:Silver:3:1:
+Angel:2:P:Silver:10:1:
 Press:2::Iron:0:1:
-Brush:1:::0:1:
+Brush:1:::5:1:
 Wine:1:A:Plant:5:1:
-
-
-Shirt:1:T:Cloth:5::armor
-Robe:1:M:Paper:5::armor
-Chain:1:S:Iron:5::armor
-Plate:1:R:Iron:5::armor
-Sword:1:S:Iron:5
-Axe:1:T:Iron:5
-Hammer:1:S:Stone:5
-Spear:1:R:Wooden:5
-Wand:1:M:Silver:5
+Extractor:1:::5:1:
+Essense:1:::5:1:
+Shirt:1:T:Cloth:5:1:armor
+Robe:1:M:Paper:5:1:armor
+Chain:1:S:Iron:5:1:armor
+Plate:1:R:Iron:5:1:armor
+Sword:1:S:Iron:10:1:
+Axe:1:T:Iron:10:1:
+Hammer:1:S:Stone:2:1:
+Spear:1:R:Wooden:10:1:
+Wand:1:M:Silver:10:1:
+Shrinker:1:D::2:1:
+Magnifier:1:L::2:1:
+Tome:1:::5:1:
+Cactus:1:V::5:1:
 `.split("\n").map((line, ind) => {
     let [type, scale, aspects, material, chance, placeh, use] = line.split(":");
-    return [type, { use, type, scale, aspects: aspectsFromString(aspects), material, chance: chance ?? 0, ind, placeh }]
+    return [type, {
+      use, type, scale, aspects: aspectsFromString(aspects), material,
+      chance: chance ?? 0, ind, placeh
+    }]
   }))) as { [id: string]: TItem };
 
-console.log(Items);
 
 //Items.Brush.hrz = true;
 
@@ -141,10 +147,14 @@ export const Types = { ...Races, ...Items } as { [id: string]: TRaceOrItem }
 export const tips = {
   1: `LMB to switch current character, walk around and pick/place items. RMB to use items (such as Bed).`,
   2: "An item that you have found in the dream. Looking at it (happens automatically when awake) can help to remember something about reality (i.e. raise aspects).",
-  Bed: "RMB to sleep. You can increase your level and find some items in dreams. What you find in the dream is affected by the room number and the aspects of the bed and the dreamer. RMB on room to wake.",
+  Bed: "RMB to sleep. Level up and find items in dreams. What you find in the dream is affected by the room number and the aspects of the bed and the dreamer. RMB to wake.",
   Brush: "Can recolor items.",
-  Clock: "Put this item on the bed to sleep automatically.",
+  Clock: "Put on the bed to sleep automatically.",
   Hammer: "For the deep analysis (RMB with it in hand on some disposable item).",
-  armor: "RMB to wear - give bonuses.",
-  base: "Can't be examined by itself, gives bonuses to item on it."
+  Extractor: "Extract essense from the item. User's, extractor's and item's aspects should match for best results.",
+  Tome: "Hold to write in",
+  armor: "RMB to wear",
+  base: "Can't be examined by itself, gives bonuses to items on it."
 }
+
+export const skyStops = [["#00f", "#f80"], ["#88f", "#00f"], ["#008", "#00f"]]

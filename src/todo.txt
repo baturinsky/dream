@@ -1,5 +1,4 @@
 Todo:
-Essense
 
 Done:
 Floor change
@@ -14,3 +13,4 @@ Dream scenery generation
 Clock
 Pedestal
 Book
+Essense

@@ -3,14 +3,13 @@ import { dropHeldEntity, holdEntity, updateEntity, XY, XYZ, walkAnimation, Entit
 import { sum } from "./util";
 import { roomHeight, roomsNum } from "./consts";
 import { roomAt, roomOf } from "./room";
-import { toggleSavesMenu as toggleSavesMenu } from "./state";
+import { sp, toggleSavesMenu as toggleSavesMenu } from "./state";
 import { Aspects } from "./data";
 import { AspectSprites } from "./graphics";
 
 declare var Saves: HTMLDivElement, Scene: HTMLDivElement, img: HTMLImageElement, div1: HTMLDivElement, Back: HTMLCanvasElement, DEFS: Element, Menu: HTMLDivElement, Info: HTMLDivElement;
 
-export let mpress: boolean[] = [], sp = [-380, 20], zoom = 600;
-
+export let mpress: boolean[] = [], zoom = 600;
 
 export function groundPos(pos: XYZ) {
   return [pos[0], pos[1], Math.ceil(pos[2] / roomHeight) * roomHeight] as XYZ;
@@ -45,12 +44,13 @@ export function initControls() {
 
 
     let [x, y, fl, v] = mouseTarget(e);
-    let to = [x, y, (v + 1) * roomHeight] as XYZ;
+
+    let to:XYZ = fl == "f" ? [x, y, (v + 1) * roomHeight] as XYZ : fl == 'B' ? [x, 0, y] : null;
 
     let actions;
 
-    if (roomAt(to)?.dream && e.button == 2) {
-       roomAt(to).wake()    
+    if (to && roomAt(to)?.dream && e.button == 2) {
+      roomAt(to).wake()
     }
 
     if (current && !current.dream && fl == "f" && !e.shiftKey) {
@@ -63,7 +63,9 @@ export function initControls() {
 
     if (fl == "s" && !e.shiftKey) {
       let te = entitiesById[v];
-      if(te.kind == KindOf.Person)
+      if(!te)
+        return
+      if (te.kind == KindOf.Person)
         selectPerson(te);
     }
 
@@ -112,7 +114,7 @@ export function initControls() {
   onpointermove = e => {
     if (mpress[1]) {
       let mul = .5;
-      sp = sum(sp, [e.movementX, e.movementY], mul);
+      Object.assign(sp, sum(sp, [e.movementX, e.movementY], mul));
       updateCam()
     }
 

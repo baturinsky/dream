@@ -1,374 +1,2 @@
-<style>
-  body {
-    background-color: #000;
-    overflow: hidden;
-    font-family: Georgia;
-    user-select: none;
-    background: linear-gradient(#008, #000);
-    overflow: hidden;
-  }
-
-  #BG {
-    position: fixed;
-    filter: url(#_N);
-    width: 100vw;
-    height: 100vh;
-    opacity: 0.3;
-  }
-
-  .stats{
-    display: grid;
-    white-space: nowrap;
-    grid-template-columns: auto auto auto auto;
-  }
-
-  u{
-    cursor: pointer;
-  }
-
-  #Saves{
-    position:fixed;
-    right: 10px;    
-    color: #fff;
-    text-align: right;
-  }
-
-  .saves{
-    display: grid;
-    grid-template-columns: auto auto auto auto;
-    gap: 10px;
-  }
-
-  .saves > button{
-    cursor: pointer;
-  }
-
-  canvas,
-  .entity {
-    padding: 0;
-    margin: 0;
-    position: relative;
-    transform-origin: 0% 0%;
-  }
-
-
-  .entity.k4,
-  .entity.current {
-    pointer-events: none;
-  }
-
-  .pointer {
-    animation: .5s blink infinite alternate-reverse;
-  }
-
-  .sprite {
-    image-rendering: pixelated;
-    padding: 0;
-    margin: 0;
-  }
-
-  .sprite:hover {
-    filter: brightness(1.2);
-  }
-
-  #Back {
-    z-index: -100;
-    pointer-events: none;
-  }
-
-  .wall,
-  .floor {
-    pointer-events: all;
-  }
-
-  .carpet {
-    pointer-events: none;
-  }
-
-  .floor,
-  .carpet,
-  .wall,
-  .wp,
-  .curtain,
-  #Back {
-    position: absolute;
-    transform-origin: 0% 0%;
-  }
-
-  .curtain {
-    pointer-events: none;
-    transform: translateZ(64px);
-  }
-
-  .wall {
-    transform: rotate3d(0, -1, 0, 90deg);
-  }
-
-  .wp {
-    background-color: #008;
-  }
-
-
-  .floor,
-  .carpet {
-    transform: rotate3d(1, 0, 0, 89.9deg);
-  }
-
-  #Cam {
-    perspective: 800px;
-    perspective-origin: 50% 200%;
-    position: absolute;
-    top: 0;
-    left: 50vw;
-  }
-
-  #Scene {
-    position: absolute;
-    transform-style: preserve-3d;
-  }
-
-  #Preview {
-    padding: 20px;
-    pointer-events: none;
-  }
-
-  #Debug {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 350px;
-    z-index: 10;
-    font-size: 18px;
-    color: #fff;
-  }
-
-  #Debug .csel {
-    padding: 10px;
-    display: inline-block;
-    color: #fff;
-    text-shadow: 1px 1px 1px #000;
-  }
-
-  #Debug .csel * {
-    pointer-events: none;
-  }
-
-  #Debug .sprite {
-    transform: scale(2);
-    margin: 10px;
-  }
-
-  #Debug #FPS {}
-
-
-  @keyframes blind {
-
-    0%, 100% {
-      filter: opacity(0);
-    }
-
-    20% {
-      filter: opacity(1);
-    }
-  }
-
-  @keyframes blink {
-    0% {
-      filter: brightness(0.8);
-    }
-
-    100% {
-      filter: brightness(1.2)
-    }
-  }
-
-  @keyframes rotate {
-    0% {
-      transform: rotate(-10deg);
-    }
-
-    100% {
-      transform: rotate(10deg);
-    }
-  }
-
-  .thought {
-    animation: 3s flow-up forwards linear;
-  }
-
-
-  .aspect {
-    font-size: 20;
-  }
-
-  .aspect canvas {
-    padding-right: 10px;
-    transform: scale(2) translateY(4px);
-    transform-origin: 50% 80%;
-  }
-
-  .num {
-    min-width: 50px;
-  }
-
-  @keyframes flow-up {
-
-    0%,
-    100% {
-      opacity: 0;
-    }
-
-    100% {
-      transform: translateY(-5px);
-    }
-
-    20% {
-      opacity: 1;
-    }
-  }
-
-  .ftext {
-    position: absolute;
-    font-size: 5px;
-    text-align: center;
-    color: #fff;
-    text-shadow: 1px 1px 1px #000;
-    pointer-events: none;
-  }
-
-  .ftext div {
-    animation: 3s flow-up forwards linear;
-  }
-
-  .etitle {
-    color: #fff;
-    pointer-events: none;
-
-    position: absolute;
-    top: -3px;
-    z-index: 100;
-    left: 0;
-    font-size: 4px;
-    width: 100%;
-    text-align: center;
-  }
-
-  /*.right {
-    transform: scaleX(-1) translateX(16px);
-  }*/
-
-  .right .etitle {
-    transform: scaleX(-1)
-  }
-
-  .right>canvas{
-    transform-origin: 100% 0%;
-  }
-
-
-  .etitle, .red, .grn{
-    text-shadow: .2px .2px .2px #000;    
-  }
-
-  .red {
-    color: #f00;
-  }
-
-  .grn {
-    color: #0f0;
-  }
-
-
-  .blink {
-    animation: blink infinite alternate .5s;
-  }
-
-  .blind{
-    pointer-events: none;
-    position: absolute;
-    animation: blind 4s;
-  }
-
-  .dn {
-    display: none;
-  }
-  
-  i {
-    font-size: 80%;
-    opacity: 70%;
-  }
-
-  #Info {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    color: #fff;
-    width: 300px;
-  }
-
-  #Info, .saves{
-    padding: 0px 20px 20px 20px;
-    background: #0003;
-    border-radius: 4px;
-    border-right: solid 1px #fff4;
-    border-top: solid 1px #fff4;
-  }
-
-  .foo{
-    font-size: 10px;
-    white-space: nowrap;
-    transform: translateX(30px);
-  }
-</style>
-
-<div class=dn>
-  <svg>
-    <defs id="DEFS">
-      <filter id=_N>
-        <feTurbulence baseFrequency=0.005 type="fractalNoise" numOctaves="4" />
-      </filter>
-      <filter id=_S>
-        <feColorMatrix type=matrix values="1 0 0 0 0  -1 0 0 0 1  0 0 0 0 0  0 0 0 0 1" />
-      </filter>
-      <filter id=_T>
-        <feColorMatrix type=matrix values="1 0 0 0 0  -1 0 0 0 1  0 0 0 0 0  1 0 0 0 0" />
-      </filter>
-      <filter id=_O>
-        <feColorMatrix type=matrix values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0" result=f />
-        <feMorphology operator=dilate radius=".9" />
-        <feColorMatrix type=matrix values="0 0 0 0 0  1 0 0 0 0  0 0 0 0 0  1 0 0 0 0" />
-        <feBlend in2=f mode=overlay />
-      </filter>
-      <filter id=_4>
-        <feColorMatrix type=matrix values="1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 1 0" />
-      </filter>
-    </defs>
-
-  </svg>
-
-  <canvas id=TC></canvas>
-
-  <img id=img src="" />
-</div>
-
-<!--<div id=BG></div>-->
-
-<div id=Debug class=dn>
-  <div id=Preview></div>
-  <div id=FPS></div>
-</div>
-
-<div id=Cam>
-  <div id=Scene>
-    <canvas id=Back></canvas>
-  </div>
-</div>
-
-<div id=Saves></div>
-
-<div id=Info>
-  <h1></h1>
-</div>
-
-
-<script src=bundle.js></script>
+<style>body{background-color:#000;overflow:hidden;font-family:Georgia;user-select:none;background:linear-gradient(#008,#000);overflow:hidden}#BG{position:fixed;filter:url(#_N);width:100vw;height:100vh;opacity:.3}.stats{display:grid;white-space:nowrap;grid-template-columns:auto auto auto auto}.grid3{display:grid;white-space:nowrap;grid-template-columns:auto auto auto}u{cursor:pointer}#Saves{position:fixed;right:10px;color:#fff;text-align:right}.saves{display:grid;grid-template-columns:auto auto auto auto;gap:10px}.saves>button{cursor:pointer}.entity,canvas{padding:0;margin:0;position:relative;transform-origin:0 0}.entity.current,.entity.k4{pointer-events:none}.pointer{animation:.5s blink infinite alternate-reverse}.sprite{image-rendering:pixelated;padding:0;margin:0}.sprite:hover{filter:brightness(1.2)}#Back{z-index:-100}.floor,.wall{pointer-events:all}.carpet{pointer-events:none}#Back,.carpet,.curtain,.floor,.wall,.wp{position:absolute;transform-origin:0 0}.curtain{pointer-events:none;transform:translateZ(64px)}.wall{transform:rotate3d(0,-1,0,90deg)}.wp{background-color:#008}.carpet,.floor{transform:rotate3d(1,0,0,89.9deg)}#Cam{perspective:800px;perspective-origin:50% 200%;position:absolute;top:0;left:50vw}#Scene{position:absolute;transform-style:preserve-3d}#Preview{padding:20px;pointer-events:none}@keyframes blind{0%,100%{filter:opacity(0)}20%{filter:opacity(1)}}@keyframes blink{0%{filter:brightness(.8)}100%{filter:brightness(1.2)}}@keyframes rotate{0%{transform:rotate(-10deg)}100%{transform:rotate(10deg)}}.thought{z-index:100;animation:3s flow-up forwards linear}.thoughtd{z-index:100;animation:3s flow-down forwards linear}.aspect{font-size:20}.aspect canvas{padding-right:10px;transform:scale(2) translateY(4px);transform-origin:50% 80%}.num{min-width:50px}@keyframes flow-up{0%,100%{opacity:0}100%{transform:translateY(-10px)}20%{opacity:1}}@keyframes flow-down{0%,100%{opacity:0}0%{transform:translateY(10px)}20%{opacity:1}}.ftext{position:absolute;font-size:5px;text-align:center;color:#fff;text-shadow:1px 1px 1px #000;pointer-events:none}.ftext div{animation:3s flow-up forwards linear}.etitle{color:#fff;pointer-events:none;position:absolute;top:-3px;z-index:100;left:0;font-size:4px;width:100%;text-align:center;white-space:nowrap}.right .etitle{transform:scaleX(-1)}.right>canvas{transform-origin:100% 0}.etitle,.grn,.red{text-shadow:.2px .2px .2px #000}.red{color:#f88}.grn{color:#8f8}.blink{animation:blink infinite alternate .5s}.blind{pointer-events:none;position:absolute;animation:blind 4s}.dn{display:none}i{font-size:80%;opacity:70%}.lvl{display:inline-block;min-width:40px}#Msg{position:fixed;left:50%;top:50%;width:400px;transform:translate(-200px,-200px);z-index:100;text-align:center;color:#fff;display:none}#Info{position:fixed;top:10px;left:10px;color:#fff;max-width:350px;font-size:15px}#Info,#MSg,.saves{padding:0 20px 20px 20px;background:#0003;border-radius:4px;border-right:solid 1px #fff4;border-top:solid 1px #fff4}.roomn{font-size:10px;white-space:nowrap;transform:translateX(30px)}</style><div class=dn><svg><defs id=DEFS><filter id=_N><feTurbulence baseFrequency=0.005 numOctaves=4 type=fractalNoise /></filter><filter id=_S><feColorMatrix type=matrix values="1 0 0 0 0  -1 0 0 0 1  0 0 0 0 0  0 0 0 0 1"/></filter><filter id=_T><feColorMatrix type=matrix values="1 0 0 0 0  -1 0 0 0 1  0 0 0 0 0  1 0 0 0 0"/></filter><filter id=_O><feColorMatrix type=matrix values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0"result=f /><feMorphology operator=dilate radius=.9 /><feColorMatrix type=matrix values="0 0 0 0 0  1 0 0 0 0  0 0 0 0 0  1 0 0 0 0"/><feBlend in2=f mode=overlay /></filter><filter id=_4><feColorMatrix type=matrix values="1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 1 0"/></filter></defs></svg><canvas id=TC></canvas><img id=img src=""></div><div id=Debug class=dn><div id=Preview></div><div id=FPS></div></div><div id=Cam><div id=Scene><canvas id=Back></canvas></div></div><div id=Saves></div><div id=Info></div><div id=Msg></div><script>eval(Function("[M='BWAOexNTSmfEXSAoh[xD[ygO[yIrP^Zo}zRmUfDtGAY`LIqak~@tgtZPYeCR`bownCesqEzRBvn_tSkrZgWvFQt~?^[tDGDB{S@kLAFo`WUq}mx}amzBlerrircnJzT~a|Xk~i~s^vRCMYDejAWihWuIZ_Hm`fssw_IfV@_~r]HNOgOOdZbRmU}Pi]rytD^z|[mp~~bjdRdEEqJInkQooBJ_poCHcMptk|Oo^gCvEZKyUHrhz_PvG@EfEjNwL]j_eEC@VAcQSuyEDRYi~s`aJrD~EBhuMY@iLKXPgPi_zNYOrXdM~M{~K{sF@mvDWlOBEN}{JYAYNSRyt@]ZAuH|OiVUBLAzFzArLW~U|GIQJSUXM]WTzlvh]njvCp{o@ZqY|_znFB}Xx{qBX|^iwEA?^msmXpDYwOVdFCJYsg@r|rhigZCm?lMDgv_udGAyTpxFeIJtb]oaKgBNCDrkjnOmEIkolSGHneGfRTIw~tbgJbPVDed}N_Gzr^EYF`qZ@kMlsc?@Nhk|n}yxT|TZLrDmL|[TR@Tg|E_XajU@JI_}{HCa_[}imyh^G^bD`Kh[_e}^YUJvqfpR{{[PhY`c@fUAM^bIUXWXWUNL`wlvoBdu~CDz]Li[v]JvVeDU`C_]`]_fTithSyE]mR?Jz[TnCWreDISf^bsFYx@U]QKpwTP{QJLyIK@XYa_Svt_RqSOsFa~Y?a{^eSGbeNGpz|oNUT_IVFaZ[nS[`pAa^oEFsYp[|jO|keCMlMdLJ@IK]c^zD|DD]em{Q[Gf_O{LrJSdSobfxWjcZauENdEqMZ]y|MuYkde|viM`bVL@iaEMR}q^Ar@sK`cWRRE`Q|gDaLbL[[LvHtWGOgQgOxJZEmIsRlrH[LYNTz?u~dpuSkSA{Dd]vpTTwpP?cPQ_zWuFAoxMNtfawZE|Hp|X`v`ej^LwegIk[ot}Aklx[jUwhpv[__HGdKSU^ykDga`AgYDrpefThqD|Zcw|bJLcPnTFqSMnFEP?auFCWI@JyJsHyv|Umnh{G@lzoACDGN_JD`aLWNOUihHbUMiUc[kbyzVgsyyzY~~Gkzt{yGQtWmI^csEOzady`rf|lHHBtV_HbAnDndOVSOOcD[[nuJUerfpNUqi_rxtVXNTzhmbqeTFFmZQf{pCy`Tiy]ivEoNCxkbW{uteOaCKIuzx_O_bp@T?cJLEIneMdAR_SxF`vSiDHqPp[dcXAEudSNQKIRjQn]QrSwUeDUAukVe?Ce_{iyfDf]jiGLLTz^jpyOo`@paEbeBftNqmRfIza_d~Emg[MEJdfMXWRJVEQPuixl[FALXBZWmt[FsdtHvBuy~YOf]Zcy^rIfIxO]EDm]vDRJCLkT?{nFZdqQ@?I^amMAQYNbDSvMQqWKbzy~loKdtDezK~IeQoNSCYpOfhrBFciGQHaNmPEm~QZTbO`QkKTLX|QZQk~FAdokSsth^g~cxQ}wZ~R_X_rKtov~nwavF^kXcB[Jhn`|XIFe]UHjoQhW@OIm?D]C]qXWVzvxqzRKku_jHUAw|EIwSNEXhdQWQGvMlHellPhJMclaZxnwLt`gu@}ijeIVCwQLnnpHwl]UjxBFozHkSh{jRw_fMeM}zycI@^JAKhg`]EgkhJxC??^GVj{ZuHO@T`pgZvXLc`QMwbPPLR~[^OBxgUXhO?sf`_ty[SqEjclwkRljqHCgDx]GZOEuxI`YsFgokRnc?SpuZwftB^MCM~xGJuFfFp@bVoGah~YB_BOMowLsnBFP}IhqmJgWr[dvSR~yEz^sgD@kuS[|w[FEpn}FutEd[sEjxFwkHp]arVOVhCDea]h@loUeyxJ[^jJWj~GzGbVOR^GOj~@EpMQS{fUzZUOo@UOoUg[EwosUu{zBGBMB[AvQ^^uMuZTs~VemCYJ|LuKUdoDGIXBEysrwPN^ywQ[r@UnrD[fzYq~wWdR_z|Pc{hizNpJ[ppDya~VoEQ{TL[rP[^~iSWDM{`P`ZOSuCY{rcYVQNj]iGrT{gq[M]@N~hL~f^meWdyER^CSW]Ee^lVK_LbgmRlyQmJQ_vCOHxdQ~Ss{Fqi{PSXJ^E{]IRYUBGUpfScVPoQpjtS^UlQwY?VtCeKM^DRvs}dXuLOzLPHLhHXth`ibPgvbf_QnRRyeWgx}|tNzsRZzveuURy[mdwTfK]l`W`Lg~BBltgv|WkXDYCvtDEe}RUMEHxMsZHTEITWDJub{ZydtcPtqyAXeHX^eUDl^{fZ_zgU~ttxMJW@t_LrzYABnmII[PzXhOJXpYAEBd^ryANWbX|tcZ}[Ah_JoxliRObZEGLcgl[|rJjWRZIMyswThYO^L}Y?|JvKv@D^kjrCAheIPJwu^EJwAvDpJbMv{tzahgZq?{w{QtEnwiJ{`FdrVZkdfkX~VYZbZd@EkRt@K_ZagwOULSwoAosKWKZZY[efumsFUnV``bT[||Mux?[e`eWt]{ZfhdPQbMKR{EqMRp`RxzeUUpuC{xPl`|fbuAqSlryXUNXjXJJUcHS@}`|f?K}`]krgDylk{VATrwFuhMl{WsVbiB]trxe[a~pHmJvRZ[JiBqJWatYtcAziWwXbyy^[RbhCBEubkOhkqPWHvAeZgpdctN@bxg?~tMoVQjH{~Oz|Igq]u}R_bxv_@QyKRKWAk]OZ^_@uMGCKj?ux_DnvYRL}a@~O`EnopR^TwZ{xL?ooblHT{?KPZjRgrGWNIWJZzlt}}EirLRSTlZCCP?gWzhfy^LqboZBzlgd[tpNMQc@JIyQlUxzpvXkDqg^jz~qTHt^uX_syoNPUHyNGKUTOZwPdd?loEpfVMnpV@xBMT}jjaqmFfQLAQbRdIxQ^bpL~lUmmCkJl]Xb][WJvR@GJLhFk{TnX^JEKBYnpdGgx~oVfqtHpcWPRKRsr`p^dapFHtwS?[aRUB`^][VxPoTl}lGrSYohOrQvt~EXceEXGjchDsERM{o_O]C]YrePBYHf^]oAlsPY}VS_HfydxTvKNW`wbCZ}cGPeS@o^FMCMxIdphtsX]{}FpufIo@[riQLidVbX@sZMjaxsGb{?wG{preZYM~}oOos_Ow^LIbUwFGZD}of[RsmQBndraVm_IwSys^|WB@OE}eTYUM_sk~KbGqSiAmmIwfkaS{d_J_FFDmtPKbNOoTA`Q^q_VPkdQUrV|sHGsrAbDAxNLg~VuoaE|Fv|AAJdec[`VlgpjbWAKHZ|sB`[mFt{IDYbgaZ?mpXyijxWOKS~@?iv?IKplt|_`g~YuH_FLB]{}_pQRuJihjhTJRK}|^Lu[kKBSpgdtbvXr^w_Ll_lCPi}~Mv@unAB|wxxRrWHJbnDt?DTTT}W@VAAk]ueU_y{pyJ|Bzej]SScuqMsk`vdHoAj}ol}P]WwMBvWyVN]^CYtlPyXMAxv}qyVoj^FyG?|ZylthR`NzEQUzt^WdSs|^uTlaF[PvbOC?M_KElpIPLo_x}wwGvrSZiLJMiGMN}ksTyCVqwSRIRXxRu?@W@]tRWPJoQ]U~nTOU[Am`~E]vTuSW_XOwa^cOCcjcyhBM[F~Ttvu^BTsG}[sJnef^gV{lDVPZmFne[m~`AWMvPgjYtA_FqE~|XopEeflTo?BUB]sw]Pf`Stu?gddn@K]BVVu]sfNd]FI]xRs@@}?BTcP}sGj|mddcCk{aSZz|vPOjQV}tEih`SsA_H@OsoB}hGwW_IMjBXsVaxYsJpDPqioT{iVygK^^Rvi~~hTMFHItNKQFZZ}PiDSjjCaT^AHLMnINWhwvbIme[[Ex{y]?mmrIWw{eM}MGQIQal}cH~[]_W|pKZhWrw~vWjo?KtbQvRP^gQsa?{gNT_JAtey_Y??jYCvvPoVv|jTo?SktuVDW?OnTjgnCUSdF~IyLMoXnucUxHmUOw}}QVd~YUlBKVHCvdXwwrikcRoLSLKmKqek_WVUeCtNJdy?GEZm[Obsl}`aIDiJap]Sd}FRbFpCrNFySBHFFRfR[huZsBSYlmLNxOk|H`zcBRZkQnGnWW?hU^je[_JUxk[LZprsySTNJFWyMAk`]qnlgHPH_nqLoxu_~bavmb}|PfONBQIY}NkXUz_sWvGImmQakJ`YvAiEFdEY^BgJTAWg_Dm^qQOUSrEMzvRqvF`Xo}ozh~rlkC@e?hSFDcLha?DXigsDVBHusBkoFTVH@Xo|rdq?LaKZgRRVJnrijg}yE|I?NRXXkls|yhpvtABcgtJH@BS_wW}?QHwawJNEh?|AoiLfspqaZM^NjHpW@triCFGjhYpcQYdOgfoUcL^soxJpydGaC[cjSIq[qPfjUunkqCyks]JA{Sq^jfIKBQkRVjdQmNo_E_duU?d[I|k]pWwylgIk@C|vUJclNOAUY]ONCsNqDYVppSI]bSWsSIaSDhjW|zxmhD_zecd}kzYuGzzsXo|qFA}gMft]Tpcc{rlfW}glXIPRrGHWrquapVJQvxoBufFmNQqepWGH`_aaUFB}]kxX@~FnUvkocODQlxApAQf~FaqFVBkNFUycEAGcdmHyl`}iOqM???OI^JlJad^IaqAOqCqgtltu{S{F]MRzkkMH~hgB_K}DDGuzONQm?TQGlwkJ@|YoWTDB}xPEaTjzNPD{?EF^eF|~MhPd}EJMu|Cb_VvrDnYibLIXZqdrF^[NvWAzyCYvCP__jqeI@{RHbGkdIby?TcS|@tru~rh}cT[nflgUU]Jqy_]Y{@GN}fpTM|GhKtr@fAfQXH|DkSxgKscNolRqYAwwshfFc_mEMJTsFlxRWoBh{udJfQIOIbwejg{pbcxcShj}tKAgbHlthZGgEiuSiTJHGcNsm|Fn^jGIhIPY_gY~SvC^?l_VTSw~YyCENz]|CJ]EsuHV?[Km~}dIra]RNIUFULCpWyozzN^vrlW~MKb^vNxKYi?[VVvgwI^}zCW|MQBBe[oQ~HiqvIEIwrAutUjOBR]ydotHG~pIbs]Avi?Q^MFt~OZB|uSgDkYyo[V@XHRlGKxVRraw~nUFRe~oTEHgLgUbeu[QCppG}vB`rw?{yAP~Ie|AngIZOJl{{OEd@JDtFFWe_UsYyu`lrWPbp{PjrRXk^|kpqRpevA{zz]KcysIGPV~NSOrMIy@RFpu@]c{zxyuB{QXI`yxuEOaszPfW_Q?nIyyaUjaLF~B_jJnnCCC`YEZsBamg~J?RrBMS|rlpS?f`SXby]OaIjUzD~ORNFnfInUqrrSHt]BHYLiXcEEOWCFn@W^b_ZOH}yMSaZn]zNZBojTx`c}BNaolAex?iDNoRz_YLjwpDlDanGYrGm`yrVIqg[X]i]|`VDtanUGbahMwoRyMpKKsjhZvtL`oTiuEpwbyvfrQ{HJe{Ov}F]KE_hW{|ZJtLHcD|n|beUwuD?fstolkDQsObExR?GCWV@PnCb}rfGBcFExmnkbnRl@lUMy{OuSO[updePHxOUhh~tWJSIjcZ|?CJMe}GcLfKEnVuEVHzhmZTgGmWnLGl`Inrqg[AjJX?JIMTGnjt{rFBtayR]mA_sHE~HTFHCkowexrBzGOCCOidNTZTOMHtctCcxISFyIS?MMzoPhvuo_MeBXAqaz{SRkfACmEGjYkqqEgbUn[J]@|KBKQHoe[H]}O[]DSArK{e@uoQIGq{MDa`kBA@VJN~zk@f`o|YBVlp^}XGGifR`}pQPz~p[vCDwKnr~fBdol{adKKq|gZrsykPbJ}Wt{ydvEweXFAd~Gs~KFI|OgaoCj~s@kluQs}Kwl~rolYoxCtAwKBwJ`QV|DqDCo[lKBJli]LTXJ[U_OtcwdeYSEoaTkhTNFgwKcdYeqyHtfIN]hMrlIMrv`QAAcd~IUPd^]KUa{vPmndKs^LhPfR}A`yrXK_IeRau^qltvs@Hs}GZfytTMEYiWaDi|UkxgAvoKVTSMhOxZVRkpxYhLt{|W`wN?CxbKR_XvKBgYHs}~pTKs^s]DiEOTDfFbgy?Qaj]k{nEJ?tPIt[Ij}HcMOt[~nnFRI~SDFvuT`TzwHBEAUROOdx|}[@P`CVrRTTwt_vX[^`hZXgnRfvjJuM]TY{o?|QraKOdNK`nEjHry{irVnHVBFRRK@aGti@IgYf_POux{LzXIQOU}nXFIWd[QbI]YBbWCVtrSZpyiU|voGeJheApuvVrbjeEC^Y^DPMtVsG^PPowKYW`a_hHKWqjzQKjnUVYipsOAfCoDvEBwnhhbMJDFAXWfz_aQNsdW^hbov|IzVcB~Q}W[yrrqAh~Ffna]gPpLng]q`Ecr?fIRo[fwlmLBG_wWlOtcuBOfh]pcU`MeTO{e~hoyKA}hOWb`_XxGBHVDEsGZWKWF@wR_gQ}}CylwFXCgGVchTxis}femBl_`hm?Pp^KyvlGNpeHdbazyAgMjK|NgEFZUQi[vG`b[zDjpZogueibGg?U?F`nGfAxHO}yUSkKobdRk{uQmhqig?DQSCYmzOI`sQ{l?[hEW]tZxrV]oxve}U[CUno]Tzm{aY`MtKEO@BnjUZDqWO]PdhhQ~Cur`BpxO|WQ}GDu{TR^DFjEvaMNt@OwEsKHbtkPhMsPY`Od}ARWujO@kuOR@V]YXfthvdkWUHMP~HUk?wabOIpMb^VZoFOT_PualoyakepHTaccAIFpOIXcj^BqR}jnIFQfsSNfcXcMHN~sePl~[~EzvDnAsyCtDyX@FrO^I[kZpz]RcJaMW^VC?D|DnchyaCNTOYcg_?{BUnsz}oTwwqHGqXkEYRJ[ueVk}y_ADSNhGVve@d}HMcAqryQV~^KIO}NTHxwieYzF}tqGbocMFLWcxa}FG|nr^bHqviaYy`Q_saoJlKfF]zipf|]|XOpsp_`}lSi~fV@pBKA}detON]qAN|oEbMewuYjDI]FIa?pDc@XNVc`Mvp[cm@JYixrnCAA}_sI}F]I@vw|Y{aNnq_PJKqJZ^`kuQhPNnLBaT`OqQ{N]{Z_NpehTFiTRRoPb`SugsNphOvoio_yuElSc?@{Q|eGUzfiQHPUnqHHtkSMWFLA?wgAc}MLfQ[sJFYspYCSVMcUD|lS@jVnsaP~hQHpipBinwltujkrHN?]PERHGSDBGZi[`IiareC^Cv^SOfQzOAlUx~qxCcwy]@NRPjMDUvl}zn~`bmyKVYoBkKKGSRS@RBC{d|m]xvoq`FXfhagsCxiTt^E_}je?mOds{ne[F]~[A_o~CQzV@Y|KROoZVsveVz^CrEsqrnva}TaEdaN`CdBNy`[]IQeeGaMnxdmidKPaamZg]ELQj}agO^[AMa{`jt`jrT`^?Q{f?_sC?aQ]hUMLFU`mFS?kOq}H`^@BmTW`s^i?jE}ncZmnXb|y{hg~Oy`BFzBnB_Z~i^qJm[E{QXHndwcqBg]Vy@PLqFyKik}QQRWzzEWgqQrpxXuWAvcx@JRUQPPqjR}_xvLiqBRUPSWg_Ss^uN?]xmZsyFp|BuKfwXpyWUtK_tlV[?hWGs@vyfwXDl{saRKhJ_XKbKwBAukfldIkNRc_pnes{Hv@?`KmDQbFQq?QsA]iQfiVoqJT}I{ID`RDAmIjQ~rY?MgcJCWqOPDWS[kUYBwAnXGYORzuYorbburnehpb@V_q?x?gyq|wJcoGRcoWRRBdRL[[uh{W}[KK}ZOfAQavaAs@qyGOSU^pNVT|?A@NtBwL{QXUfXdgTMWOctgaz@Tf{MEyyUbayCpJKdbrXqzTODAFmiNELKdYOegEF|WvNpTWgKUq]Gq^OT@szJVVWRB~Nz^|bDxNN^`mk[|ZV[UBU}og^{LzQaYmaGYUKyg_jo[kZYUhvqMBGpVxG?St]b?lmgp]jt_s[Q{}huDyWtqOJnV{{sFukG@mR_KJhLfOuA?]Fa@B?_ADtabrW}BHGO]ZztE`{|Mvg]ye@@VJ}csTZGk@Wyg|HcCuc|aYHKYyAAy{}`Bq{ZN^mtQv_hnWEwJ^xmAV@VMwH[CfFXRBg~UayIobIgHAkOxcOk~|UoypYqs]yyWTzD|poj~LfthRBwn]M@}@u}qOYA?evgFiDJrY]zeTGK^zC[_jclUTbx^}[bE_UQ~jkANPq}hlwg~zqAPlDUMr]TnE]nZvshNSsZVcE}lW}rxtaW}_RLeTRLyFWYnAQ{qlTC~rSlkKAN`phuS`rZIxymw~NYjUqNqJ[jY~d@XMzyWK]soS_WCZE}LFXWsrSqPqavKqz@fqeOXGcypWf@YbsfAgYBVy?WQaFAFFoeyPGK?auYVxh@t@AyLn[sjVDJO}~WxiZRyBfdvNIZIGc`Wbamiwl|P@o@eGo]hXd?^wVoRHAomwo@^kJQA_~vDNnfqwbsFOiecVbZbqsHhmslA|UgWQUQYzSH|[~s@oj]NDmLXjlAT?eOnfhzuRbB~tlEDdGO@Zaq|GZNoNi[LDhpSS~gC_]FSVfUHitH|B{sjXO[JQAfYn~UBHX^bD`tnYo]j[Rt]jVSwwbY[ES~Z`HkBWnzGgy_LMezhf[XgGCWh@Inzgj}BcFpYlWS?MWPDO?PokFwMykyeOomSQZwDBFOQJgrigxF|ImXPVaSz@A}uhYbV{}WMmmFCib?mWK`qdmUZvky`iJpIS}t~eX~r`_|q[P^h}p^lnG}@S`}~AZMkbiPmY@D~yeJWfK`Gfq`ccjhpc^l`|HcnDH@}dkOyDISWF@tii{hG~OIS{au@aTzRBmQKxqcQY[SIqRg}SXW~Rt{dNwpCJjRXX_OECQbKXZtE@PwV`M`O^YspYsuGeIvGD{zQfQ~hCSHrXVlfz`dIsV}fWZ~~DFm[uwdh]DVTgbzvl{HtNSiQXESZCuAAbiK[GGh]epgt|ZcLdKHMuubUhJlToZg?{FWNQwwysu?Y?ec_U@lcAuEVoxtcUNrCaoqQ_PEeKyp`zt{fACHzNFyyAvRcIUhJXKm_DCBNqj{]|?~fEKyT^v@qYOAyelUCXeuEZZgcs@YVYOGxHKgFBwfKvs`mFGG}C@[BUi_PMYcOLsTueOsQIW_dShyvPK@{AkRQYk[LRx]wxtpoRokK?vGHxSV{xsj?tJjfV?`}qSBnd]HyOUdeVT|Aw~_QBjKniG^G?j|jAH{oOmMjyG}u~|U`ttEGTfXqLf^Ir^osbN~fnGOvD_agaKsjR^tBVI@Y]pINRGiQotHt~zHKBDIgfLKzNC}pyAszKAKck{PjMfWOcVasliW]sPlgIuyW~u~naBhsksH@k|hn@HSMUgHf?a@lH]LSrBPh`dUcF}dg]wOx]PSm`qN|UXXloSKyQEQ[vA~{JjeOREpJhGUIccwVN_DqeEwz[WjKFrznv}UyMN|XMG~cWkmTLDGnOFi`ql{gzY{FS}e|~|rU|Mlsh_XlYNxiu`jixmDQwlzP]COVgIUe?tE[AVk^NnrTu??ciCEa_~@xf?v~WIQZKZPtkZPEnIQjupx~THxqGq|XI``^QukgOpYrcSih}CuOBKh?ypa]Ev]kYGAq[Q^V}ZCIs}}{iz|rL[x@Pia}Lik`ApCIwkMNIXzu_jSabhYTz]KkvUMscoERDz~B}@@`If{RHHly~pCb?x{K}|QYTdwuwtiaG[p`ZQe|h~THfr{qRZJDlgcwEUUKPxtgqZ{{aKhE[nK[ArZ_ZLk`ty|rhcumySxfaYZiRXiPc}M_EPLiY}wbXlnzl_kXaT]Lg`q~]lysJ`RpHN?b}YB[SOrdg~ZongTjNDdecWy{ZZ??MyX?wzHzWbZ]@zLJi~Z]jNrg@uf_v_s`eRxhQbyNqWSITbI?a{HuKI`{ZJxQSteU_{MU[{Pbns@XZBtrtFZo@gbtQ{rKVGg?d~TocBNJuugydZt[RShSZNG}h}?Hg`q`Kgh~vy]Kv]r?gsHM_xU_B?Y~rJlLQIcopGjUQYxfvh{@U}CMMO@oYOQmlzt`bgo]JGxR_mq[ZqT[nKB@S{~T[mKgLuKFlIlqoJTdC|Hbyh{WwMWLuVoA}xj^g{^Z[uiYs}Y?|FTOneqQAjrnXhpKnLFsfas~fK]RNjhwvzg|tnMfTKf@^Jl|QAbFE_EU_w~lfy|mNq`q?TNMdkPPNCd`gYqz{VJq_}fi}ZQOpnZwzOZrEXFf?B@G?HQ`Z@GW@_FDt}VAKoVN~ei~FYJ}|EhYkqDYMhRt[tqiLcz}_KYugx?RQy?}q@I]gKIAK`i`|Gx@iklk^ufPxfeAdp?kiPQmcXeK@i`xWXn`Mn{B]NJpxyFFVkBAiezl`YyI|jUrHxAgOcgZgqzGCHx^yw|Cr_Li}C|tNgZhBz^C?NF[Z_yTibB{ZTkouX}GMGsSwugEOxzHfjBEZpfnQPC~MiC|as~hcBiUxXV?ePTOpLFeHGOVpnH@~KhRnuKscUNmMgDq]TYH]cuP[Z?tOX[@qFmEhTcg_NhKsaDzOInLJJjmCAx|V|kPh|@|^KGbNIdauYNNGh|njUnCLm]hGRtEgVfDAWEHALgyemQK{RY~YRR^QxiNZcWKPVB?bUufU^k{ERraJi{JuvnSYxw]zZhH^hVcyYHcnvFLCWRT`SHvYqd@@?aL^UdaisanGUkSlwWVXJVPKLrqBG[VcDJY]PQvkfehjMiX_MjWAGfra|joWnJAJN^BRcq_bBTl``W[MMQ@ZWBbWnrd{r~MYiEyClT|[qz_j{}Om~PpeJY?_TA|KI^URZr?TC`_CWwrxQHtgg^clpG]?_VE@`VR`~|tZb{?cAzSgExt{yzkCfGyljSa[DzVj]p_NxXl`kx^?~rBqxZNhWyGEBHl^?|oi[_}HkqYMHMMtpumoxLZueWChc[yUq}OraMI?G?GloL[iIQOOBrVuznckBJQw^sxWvbh~Tcr|qaAKJ?JeoPtK`LRoe|BXd[GXBKFwqzGOrkQeEEi^oEtPg_l{Tce@DVHB{RK?hX]pYspZ@UyNO~XdSvOwgtDr@xMd|UGzc}UZu?xzODQzkN[QlxOA`KzZCA_pcRD}V?FGe?GjCEIViSqZ?odRJddVCogYHvHCxDceNkQrRVBm}QkuidFV^AG_MAeS_Bm?nnaajhrhIB?{[BTePlDoqfAZ?}HWcrv{?jt~{_h@nNXbfRkgc@e~YO|{l|MWvovYI{XzJ~B{LhERvYBqvt[D}?liiDTEtGc}cdTZJuW~^JnKa[Ee}QJpLHbOpUT@|qguMlhuzTngcH@As^WLUupL|DC{[mHYxAF|lN]yKjqLAo@}nOwpmf^Iqs?_ephcbWTuzlzvNbL}Cow?TfnX`pOSPTGohRwm|[NRpnXF[^?sZm^@zgx{CdoooYtRwIpsaTk^hbqxifVdFa~RMK~@wPfgxkVHDmtFjpOaeJiXhtg`KYDid^[uRIy[svWZh^pFtrfyj}WTIzrk[GRP`bV`?GtqtclUQ[lHd]btZsfNQlighDU|E}uFWsFykGUxF^scRdezWum@Yvumww~TIvQVSEzVQrpqsvie`W^@iNix?anc[~`mbGswIZzTHvKnPj}S?OPwirBgX@LdDFr^LhergMnNm}sF{dlhDklv{UWmNm[i{GQmuXi@V`xD[c{GV^usyPVhGA_FnB]?iAZKGNENb`uVHOBanfgrPmoVT?yx|hA{fo[PduLxhXLgOSZpHqK}mqwc@Rhu~mSooyB~pmhUJnXAV^|@NoiyqFy{ebG]gFR@SnE[nHNqcnXUHoT{NC^k}KYRoyx_saT{fbjnsKZcfDJ@}LNKAJDQWNh]tqLibzg}cgjYYbzoZVwBeVH@IBhR~yvuHCYvOQxYQgDXLnmY`YVJ}QJbzHd[HNQ~umqHCmGYx[tB?e?qMj[@kXDS@IgNpmaDqUIyT^j^Cj|tpgPmsJgkJ{noA}Q[IjceCFIjr@ikJ~FNskOz[rvUVhbA}K]_Epl_HzrtxH]FZv_OP_RpzxtjwJEZMFPSBqCZyxyRG~@Z]?LFStDRCKmVLHD|QbXmedqEz`[USXNVRBW`Pu}JiGzx@X^n|C`vtgS}pG^XJ[fsB?N`MjsTty`FJ|h`htlxhy^?vhFrtFHlV`AoNJTmKiyi?~~FPxre_qJ?n}Qd~fThFCAmbW{bTIRjd}CFa?{APLRJfHFnnbcd@ToK|WDuKca`tFG|WxOJhrdMWLzUSZBRsjCP}GutSeBVS~tapcSBpw}mM|I{mS~Nwwe}X`MipXvByPhScXFo`UUfrYTByj?NRONF|S]oggsbtDUxX^nZJZj}tBFoFnbhAQUwkqsyBvM@}gWxqNC}d^Z~Hz@tCC@GoG`_FQR^FovQY@cF`hbb}}WS~zp@ttrndfHfsOx]LNpQtEKKUhCagdWctU|`Bma[RjSY{]R]g|iklWngQdXMwDvlEwaosOdpMUaDZbjnsRxlcVTYQNpj]t|go]~ornHMTbvLnfTD^up~a]tbcyuWSYEKd|M{v[?DvdZ`zv~ptn|o[q[{hbs}uI@iZKvKOAH^iMZqw|??FesC`zmC`~WT|OlMQ[azUnZhNgl^AkyIESJYXjqLUXcyNuv~ZodE|{}Xlpe`[pWR[GIGQZfqvWzVDGLC^LFVWzqnkVMdKfG]Jt@sJbMO_s?QibY?Wtu|ifYt[Mf_G]NxV|jf}@_HPs~en~LDRbMlcJ`?@pmR]XFdy@mILUQGCyiBxKNWy`KrmfGi^nR_d]NW|Cv|~pB]gbgretRT`^^`]TtNQgKX]zdokEQyv`xiWwgbyLlEI]QhnORK[UoLAF^Hn@wZEVyYbg}nhF^cWcbzxcoI^mK_QU}?AMQOGibvK@rrO`|q{}Ij_ikh~wODzOam{O@HqpLE~Ij[IIawPl^qseOacNlXswEImlIQeJZWhwdbACPFcgnOh`crlUVk^ccywaFpRQFk]mZfIU?oPOE@ofq?INobQO~p?]x~IawxVdy@u_XmVBtp]B?}yc^OsF}n}fj`FYaw__{KpYHfd|L{lkFfHroJbQHQFdEH~RD@XXF@JD~YOx`BTgttagblawlMmyhpJv~I{DtLpu@^CY@C^JhSnId~zON@dA|teSNNVTFy]^~Ik`@D@O{Hj^QHNOyutH^tTYbU}'"
+,...']charCodeAtUinyxpf',"for(;e<22304;c[e++]=p-=128,A=A?p-A&&A:(p==34|p==96)&&p)for(p=1;p<128;y=f.map((n,x)=>(U=r[n]*2+1,U=Math.log(U/(h-U)),t-=a[x]*U,U/500)),t=~-h/(1+Math.exp(t))|1,i=o%h<t,o=o%h+(i?t:h-t)*(o>>17)-!i*t,f.map((n,x)=>(U=r[n]+=(i*h/2-r[n]<<13)/((C[n]+=C[n]<5)+1/20)>>13,a[x]+=y[x]*(i-t/h))),p=p*2+i)for(f='010202103203210431053105410642'.split(t=0).map((n,x)=>(U=0,[...n].map((n,x)=>(U=U*997+(c[e-n]|0)|0)),h*32-1&U*997+p+!!A*129)*10+x);o<h*32;o=o*64|M.charCodeAt(d++)&63);for(C=String.fromCharCode(...c);r=/[\0-	-@^]/.exec(C);)with(C.split(r))C=join(shift());return C")([],[],1<<17,[0,0,0,0,0,0,0,0,0,0],new Uint16Array(42e6).fill(1<<15),new Uint8Array(42e6),0,0,0,0))</script>
