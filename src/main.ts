@@ -12,11 +12,12 @@ import {
   setMaterial
 } from "./entity";
 import { AspectSprites, GloveShape, LegShape } from "./graphics";
-import { array, rng } from "./util";
-import { Aspects } from "./data";
-import { roomHeight, roomsNum } from "./consts";
+import { array, myAlert, rng } from "./util";
+import { Aspects, tips } from "./data";
+import { roomHeight, roomsNum, saveName } from "./consts";
 import { redrawRooms, Room } from "./room";
 import { aspectsSum, levelEntityTo, levelTo, TAspects } from "./aspects";
+import { toggleSavesMenu } from "./state";
 
 declare var img: HTMLImageElement, FPS: HTMLDivElement, Scene: HTMLDivElement;
 
@@ -94,10 +95,11 @@ function init() {
       type: "Cat",
       name: "Мiu",
       chest: createEntity({ ...ItemTemplate, type: "Chain", material: "Plant" }),
-      pos: [320, 10, roomHeight]
+      pos: [320, 10, roomHeight],
+      addAspects:{S:1}
     });
 
-  cat.aspects.B = 1;
+
 
 
   //holdEntity(cat, createEntity({ ...ItemTemplate, type: "Cactus", pos:[0,0,0] }))
@@ -142,6 +144,11 @@ function init() {
   setInterval(loop, 15);
 
   updateInfo()
+
+  myAlert(`LMB to switch current character, walk around and pick/place items. RMB to use items (such as Bed). Middle buton and wheel to control the camera.`)
+  
+  toggleSavesMenu(localStorage[saveName])
+
 
   //@ts-ignore
   //if (DEBUG)    initDebug()

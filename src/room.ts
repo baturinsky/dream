@@ -258,9 +258,9 @@ export class Room {
     this.tdr(true);
     let aspects = aspectsSum(dreamer.aspects, bed.aspects);
     let il = inferLevel(aspects);
-    aspects = aspectsSum(aspectsMul(aspects, .9 / il), { [Object.keys(Aspects)[this.id]]: .9 })
+    aspects = aspectsSum(aspects, { [Object.keys(Aspects)[this.id]]: 1 })
     let level = Math.max(1, il - 3);
-    aspects = levelTo(aspects, level);
+    this.aspects = levelTo(aspects, level);
     this.level = level;
     this.next();
   }
@@ -279,7 +279,7 @@ export class Room {
           chest: createEntity(
             { ...ItemTemplate, levelTo: this.level, type: randomElement(Object.keys(Items).filter(it => Items[it].use == 'armor')) }),
           pos: this.doorPos(),
-          aspects: aspectShard(this.aspects, 0.3),
+          addAspects: aspectShard(this.aspects, 0.2),
           dream: true
         });
     }
@@ -391,7 +391,7 @@ export class Room {
       let e = createEntity({
         ...ItemTemplate,
         type,
-        aspects: this.aspects?aspectShard(this.aspects,0.3):undefined as any,
+        addAspects: this.aspects ? aspectShard(this.aspects, 0.2) : undefined as any,
         levelTo: (this.level + this.stage) * (type == "Tome" ? .2 : 1),
         pos: [
           this.col * roomWidth + 10 + rng(roomWidth - 20),

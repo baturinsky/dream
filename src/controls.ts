@@ -45,7 +45,7 @@ export function initControls() {
 
     let [x, y, fl, v] = mouseTarget(e);
 
-    let to:XYZ = fl == "f" ? [x, y, (v + 1) * roomHeight] as XYZ : fl == 'B' ? [x, 0, y] : null;
+    let to:XYZ|null = fl == "f" ? [x, y, (v + 1) * roomHeight] as XYZ : fl == 'B' ? [x, 0, y] : null;
 
     let actions;
 
@@ -53,7 +53,7 @@ export function initControls() {
       roomAt(to).wake()
     }
 
-    if (current && !current.dream && fl == "f" && !e.shiftKey) {
+    if (to && current && !current.dream && fl == "f" && !e.shiftKey) {
       if (e.button == 2 || (e.button == 0 && !current.held))
         actions = walkAnimation(current, to);
       if (e.button == 0 && current.held) {

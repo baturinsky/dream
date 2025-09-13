@@ -1,4 +1,4 @@
-import { aspectsToString, aspectsSum, inferLevel, aspectsMul, improve, levelTo, aspectsMulEach } from "./aspects";
+import { aspectsToString, aspectsSum, inferLevel, aspectsMul, improve, levelTo, aspectsMulEach, TAspects } from "./aspects";
 import { nextSpriteId } from "./consts";
 import { details, groundPos, infoShownFor, itemOrPerson, updateInfo } from "./controls";
 import { Aspects, Items, Materials, Races, tips, TItem, TRace, TRaceOrItem, Types } from "./data";
@@ -316,7 +316,7 @@ export function setMaterial(e: Entity, m: string) {
   e.colors = Materials[e.material]?.colors;
 }
 
-export function createEntity(s: Entity & { levelTo?: number }) {
+export function createEntity(s: Entity & { levelTo?: number, addAspects?: TAspects }) {
   s.id ??= nextSpriteId();
   let e = {
     canvas: createDiv(s), floor: 0, actionsQueue: [],
@@ -347,12 +347,16 @@ export function createEntity(s: Entity & { levelTo?: number }) {
     if (s.className)
       e.div.classList.add(s.className)
     registerEntity(e)
-  }
+  }  
 
   if (!e.aspects)
     for (let meat of [Materials[e.material], Races[e.type], Items[e.type]]) {
       e.aspects = aspectsSum(e.aspects, meat?.aspects)
     }
+  
+  if(s.addAspects){
+    e.aspects = aspectsSum(e.aspects, s.addAspects)
+  }
 
   if (s.levelTo) {
     e.aspects = levelTo(e.aspects, s.levelTo)

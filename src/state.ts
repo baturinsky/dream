@@ -6,6 +6,8 @@ import { redrawRooms } from "./room";
 import { array } from "./util";
 
 declare var Saves: HTMLDivElement;
+declare var Msg: HTMLDivElement;
+
 const savedEntityFieldNames = 'id,name,kind,pos,scale,right,shape,colors,aspects,dream,type,material,recent,level,combat,hrz,sleeper,log';
 
 export let openRoom = 1, sp = [-380, 20];
@@ -38,7 +40,7 @@ export function loadEntity(e?: Entity) {
 
 export function saveAll() {
   return {
-    cur: current.id,
+    cur: current?.id,
     lid: lastSpriteId,
     sp,
     openRoom,
@@ -73,8 +75,10 @@ export function toggleSavesMenu(on?:boolean) {
   menu = on===undefined?!menu:on;
   Saves.innerHTML = 'Press ESC to toggle menu'
   if (!menu) {
+    Msg.style.display='none';
     return
   }
+
   let data = JSON.parse(localStorage.getItem(saveName) || '[]');
   Saves.innerHTML += `<div class=saves>${array(10, i => {
     return `<div>
@@ -85,7 +89,7 @@ export function toggleSavesMenu(on?:boolean) {
  </div>`
 }
 
-toggleSavesMenu(localStorage[saveName])
+
 
 window.save=(i:number)=>{
   let data = JSON.parse(localStorage[saveName] || '[]');

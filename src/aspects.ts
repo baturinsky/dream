@@ -77,6 +77,7 @@ export function levelEntityTo(e: Entity, level: number, step = 1) {
   return e;
 }
 
-export function aspectShard(a:TAspects, m:number) {
-  return {[weightedRandomOKey(a)]:m*inferLevel(a)}
+export function aspectShard(a: TAspects, m: number) {
+  let s = { [weightedRandomOKey(a)]: m * inferLevel(a) }
+  return s;
 }

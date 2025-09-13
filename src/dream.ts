@@ -122,7 +122,7 @@ function giveXp(e: Entity, v: number) {
 
 function captureSuccess(room:Room) {
   let cl = chars().length;
-  return cl == 1 || rng() < .3 / cl * room.greed();
+  return cl == 1 || rng() < .2 / cl * room.greed();
 }
 
 
