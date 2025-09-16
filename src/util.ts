@@ -23,13 +23,16 @@ export function vlen<T extends number[]>(a: T) { return a.reduce((p, c) => p + c
 export function dist<T extends number[]>(a: T, b: T) { return vlen(sub(b, a)) }
 
 const maxN = 2 ** 31;
-export let rng: (n?: number) => number = RNG(123);
 
-export function RNG(seed = 0): (n?: number) => number {
+export type Rng = (n?: number) => number
+
+export let rng: Rng;
+
+export function RNG(seed = 0): Rng {
   if (0 < seed && seed < 1)
     seed = ~~(seed * maxN);
 
-  let rngi = (n) => {
+  let rngi = (n:number) => {
     return (seed = (seed * 16807) % 2147483647) % n;
   };
 
@@ -39,6 +42,8 @@ export function RNG(seed = 0): (n?: number) => number {
   return rng;
 }
 
+rng = RNG(123);
+
 export function randomElement<T>(list: T[], gen = rng) {
   if (!list)
     return null as T;
@@ -46,7 +51,7 @@ export function randomElement<T>(list: T[], gen = rng) {
   return list[n];
 }
 
-export function shuffle(arr: any[], rng) {
+export function shuffle(arr: any[], rng: Rng) {
 
   arr = [...arr];
   let l = arr.length;
@@ -129,10 +134,10 @@ export function array<T>(length: number, f: (index: number) => T = a => a as T) 
 
 export let delay = (dur: number) => new Promise(done => setTimeout(done, dur))
 
-export let fixed = (n) => n && n.toFixed(2).replace(/(.00)/g, "")
+export let fixed = (n:number) => n && n.toFixed(2).replace(/(.00)/g, "")
 
 
-export function myAlert(txt){
+export function myAlert(txt:string){
   Msg.innerHTML = `<p>${txt}</p><p><button onclick="Msg.style.display='none'">OK</button></p>`;
   Msg.style.display = "block";
 }

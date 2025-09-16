@@ -1,18 +1,24 @@
 {
   "name": "ihaveadream",
   "version": "1.0.0",
-  "devDependencies": {
-    "esbuild": "^0.14.49"
-  },
-  "scripts": {
-    "build": "node build.mjs",
-    "min": "node build.mjs --minify",
-    "start": "node build.mjs --serve"
-  },
+  "type": "module",
   "description": "Dream",
   "main": "main.js",
   "license": "MIT",
+  "devDependencies": {
+    "@swc/cli": "^0.7.8",
+    "@swc/core": "^1.13.5",
+    "esbuild": "^0.14.49"
+  },
+  "scripts": {
+    "build": " yarn vite build; yarn vite preview",
+    "min": "yarn l13 build --roadroller",
+    "start": "yarn vite"
+  },
   "dependencies": {
-    "deflate-js": "^0.2.3"
+    "deflate-js": "^0.2.3",
+    "l13": "^0.0.22",
+    "uglify-js": "^3.19.3",
+    "vite": "^7.1.5"
   }
 }
